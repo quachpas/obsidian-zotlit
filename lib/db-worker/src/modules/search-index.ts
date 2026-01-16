@@ -27,7 +27,23 @@ export default class SearchIndex {
     language,
     document: {
       id: "itemID",
-      index: ["title", "creators[]:firstName", "creators[]:lastName", "date"],
+      index: [
+        "title",
+        "creators[]:firstName",
+        "creators[]:lastName",
+        "date",
+        "citekey",
+        "publicationTitle",
+        "proceedingsTitle",
+        "journalAbbreviation",
+        "shortTitle",
+        "series",
+        "seriesTitle",
+        "publisher",
+        "university",
+        "institution",
+        "conferenceName",
+      ],
     },
     tokenize: "full",
     // @ts-ignore
@@ -85,6 +101,42 @@ export default class SearchIndex {
   ) {
     await this.#checkStatus(libraryID);
     const result = await this.#search.searchAsync(options);
+    
+    // Exact phrase matching support
+    const query = options.query;
+    if (typeof query === "string" && query.includes('"')) {
+      const phrases = query.match(/"([^"]+)"/g)?.map(p => p.slice(1, -1).toLowerCase()) ?? [];
+      if (phrases.length > 0) {
+        const cache = this.#itemsCache.get(libraryID);
+        if (cache) {
+          result.forEach(unit => {
+            unit.result = unit.result.filter(id => {
+              const item = cache.byId.get(+id);
+              if (!item) return false;
+              // Check if all phrases appear in any of the searchable fields
+              return phrases.every(phrase => {
+                // Check title
+                if (item.title?.some(t => typeof t === "string" && t.toLowerCase().includes(phrase))) return true;
+                // Check creators
+                if (item.creators?.some(c => 
+                  (c.firstName?.toLowerCase().includes(phrase)) || 
+                  (c.lastName?.toLowerCase().includes(phrase))
+                )) return true;
+                // Check other fields (publicationTitle, etc.)
+                for (const key in item) {
+                  const val = item[key];
+                  if (Array.isArray(val)) {
+                    if (val.some(v => typeof v === "string" && v.toLowerCase().includes(phrase))) return true;
+                  }
+                }
+                return false;
+              });
+            });
+          });
+        }
+      }
+    }
+    
     return result;
   }
 

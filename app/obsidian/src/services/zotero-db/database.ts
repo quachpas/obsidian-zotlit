@@ -75,33 +75,65 @@ const matchFields: string[] = [
   "creators[]:firstName",
   "creators[]:lastName",
   "date",
+  "citekey",
+  "publicationTitle",
+  "proceedingsTitle",
+  "journalAbbreviation",
+  "shortTitle",
+  "series",
+  "seriesTitle",
+  "publisher",
+  "university",
+  "institution",
+  "conferenceName",
 ];
 
 function sort(resultSet: SimpleDocumentSearchResultSetUnit[]) {
   const { size } = new Set(resultSet.flatMap((r) => r.result));
   const items = resultSet.reduce((idScore, { field, result }) => {
-    if (field.startsWith("creators[]")) {
-      field = "creators";
+    let normalizedField = field;
+    if (normalizedField.startsWith("creators[]")) {
+      normalizedField = "creators";
     }
     result.forEach((id, index) => {
       let score = size - index;
-      switch (field) {
+      switch (normalizedField) {
         case "title":
-          score *= 100;
+          score *= 10;
+          break;
+        case "citekey":
+          score *= 8;
           break;
         case "creators":
-        case "date":
           score *= 5;
           break;
+        case "publicationTitle":
+        case "proceedingsTitle":
+        case "conferenceName":
+          score *= 2;
+          break;
+        case "date":
+        case "journalAbbreviation":
+        case "shortTitle":
+        case "series":
+        case "seriesTitle":
+        case "publisher":
+        case "university":
+        case "institution":
+          score *= 1;
+          break;
         default:
-          throw new Error("Unknown field: " + field);
+          // Ignore unknown fields instead of throwing error to be more robust
+          log.warn("Unknown field in search results: " + field);
+          score *= 0.5;
+          break;
       }
 
       if (!idScore.has(+id)) {
-        idScore.set(+id, { id: +id, score, fields: new Set([field]) });
+        idScore.set(+id, { id: +id, score, fields: new Set([normalizedField]) });
       } else {
         const scoreObj = idScore.get(+id)!;
-        scoreObj.fields.add(field);
+        scoreObj.fields.add(normalizedField);
         scoreObj.score += score;
       }
     });
