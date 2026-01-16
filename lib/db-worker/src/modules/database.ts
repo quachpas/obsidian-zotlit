@@ -152,9 +152,10 @@ export default class Database {
  */
 function initDatabase(path: string, opts: DatabaseOptions) {
   // immutable tag to prevent database locked error
-  return new DatabaseConstructor(`file:${path}?mode=ro&immutable=1`, {
+  return new DatabaseConstructor(path, {
+    readonly: true,
+    fileMustExist: true,
     nativeBinding: opts.nativeBinding,
-    uri: true,
     verbose: process.env.SQL_VERBOSE
       ? (message?: any, ...additionalArgs: any[]) =>
           log.trace(`SQL: ${message}`, ...additionalArgs)
