@@ -12,7 +12,7 @@ export const binaryNameAtom = atom((get) => {
 
 export const binaryLinkAtom = atom(
   (get) =>
-    `https://github.com/aidenlx/better-sqlite3/releases/download/${
+    `https://github.com/WiseLibs/better-sqlite3/releases/download/${
       get(modalAtom).binaryVersion
     }/${get(binaryNameAtom)}`
 );

@@ -3,10 +3,9 @@ import { readFile, stat } from "fs/promises";
 import { Service } from "@ophidian/core";
 import type { DBSchema } from "idb";
 import { openDB } from "idb";
-import { Notice, loadPdfJs } from "obsidian";
+import { Notice, loadPdfJs, Plugin } from "obsidian";
 import type _pdfjs from "pdfjs-dist";
 import log from "@/log";
-import type ZoteroPlugin from "@/zt-main";
 
 export interface PDFOutline {
   level: number;
@@ -38,8 +37,9 @@ export default class PDFParser extends Service {
     },
   });
 
-  constructor(public plugin: ZoteroPlugin) {
-    super();
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
   }
 
   async getCachedOutlineKeys() {

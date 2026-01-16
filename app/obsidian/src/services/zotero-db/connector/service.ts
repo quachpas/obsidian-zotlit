@@ -8,8 +8,8 @@ import log from "@/log";
 import { Server } from "@/services/server/service";
 import { SettingsService, skip } from "@/settings/base";
 import { CancelledError, TimeoutError, untilDbRefreshed } from "@/utils/once";
-import ZoteroPlugin from "@/zt-main";
 import { DatabaseWorkerPool } from "./worker";
+import { Plugin } from "obsidian";
 
 export const enum DatabaseStatus {
   NotInitialized,
@@ -20,11 +20,15 @@ export const enum DatabaseStatus {
 export default class Database extends Service {
   settings = this.use(SettingsService);
   app = this.use(App);
-  plugin = this.use(ZoteroPlugin);
   server = this.use(Server);
 
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
+  }
+
   @calc get zoteroDataDir(): string {
-    return this.settings.current?.zoteroDataDir;
+    return this.settings.current?.zoteroDataDir ?? "";
   }
 
   onload() {
@@ -39,28 +43,35 @@ export default class Database extends Service {
         this.app.vault.on("zotero:db-updated", () => onDatabaseUpdate()),
       );
       const start = process.hrtime();
-      await this.initialize();
-      log.debug(
-        `ZoteroDB Initialization complete. Took ${prettyHrtime(
-          process.hrtime(start),
-        )}`,
-      );
+      try {
+        await this.initialize();
+        log.debug(
+          `ZoteroDB Initialization complete. Took ${prettyHrtime(
+            process.hrtime(start),
+          )}`,
+        );
+      } catch (e) {
+        log.error("Failed to initialize ZoteroDB", e);
+        new Notice(
+          "Failed to initialize ZoteroDB. Please check your settings and ensure Zotero is running or the database path is correct.",
+        );
+      }
 
-      const requestRefresh = this.genAutoRefresh(this.plugin);
+      const requestRefresh = this.genAutoRefresh();
       this.registerEvent(
         this.server.on("bg:notify", async (_, data) => {
           if (data.event !== "regular-item/update") return;
           requestRefresh(data);
         }),
       );
-      this.plugin.addCommand({
+      this._plugin?.addCommand({
         id: "refresh-zotero-data",
         name: "Refresh Zotero data",
         callback: async () => {
           await this.refresh({ task: "full" });
         },
       });
-      this.plugin.addCommand({
+      this._plugin?.addCommand({
         id: "refresh-zotero-search-index",
         name: "Refresh Zotero search index",
         callback: async () => {
@@ -98,7 +109,7 @@ export default class Database extends Service {
       ),
     );
   }
-  private genAutoRefresh(plugin: ZoteroPlugin) {
+  private genAutoRefresh() {
     let dbRefreshed = false;
     let _cancel: (() => void) | null = null;
     const cancelWaitRefresh = () => {
@@ -115,7 +126,7 @@ export default class Database extends Service {
           dbRefreshed = false;
           try {
             log.debug("Db not refreshed, waiting before auto refresh");
-            const [task] = untilDbRefreshed(plugin.app, { timeout: 10e3 });
+            const [task] = untilDbRefreshed(this.app, { timeout: 10e3 });
             await task;
           } catch (error) {
             if (error instanceof TimeoutError) {
@@ -149,7 +160,7 @@ export default class Database extends Service {
       log.debug(
         "watching db refresh while waiting for search index auto refresh",
       );
-      const [task, cancel] = untilDbRefreshed(plugin.app, { timeout: null });
+      const [task, cancel] = untilDbRefreshed(this.app, { timeout: null });
       _cancel = cancel;
       task
         .then(() => {
@@ -197,8 +208,9 @@ export default class Database extends Service {
       );
       return false;
     }
+    if (libToIndex === undefined) return false;
     await this.api.initIndex(libToIndex);
-    this.#indexedLibrary = libToIndex;
+    this.#indexedLibrary = libToIndex ?? null;
     log.debug(`Search index init complete for lib ${libToIndex}`);
     return true;
   }

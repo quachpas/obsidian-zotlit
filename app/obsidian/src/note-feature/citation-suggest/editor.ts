@@ -58,6 +58,7 @@ export class CitationEditorSuggest extends ZoteroItemEditorSuggest {
       },
       this.context,
       this.plugin.templateRenderer,
+      this.plugin
     );
   }
 }

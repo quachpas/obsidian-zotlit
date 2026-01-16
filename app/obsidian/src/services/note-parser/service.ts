@@ -7,13 +7,15 @@ import type {
 import { Service } from "@ophidian/core";
 
 import { nanoid } from "nanoid";
-import { htmlToMarkdown } from "obsidian";
+import { htmlToMarkdown, Plugin } from "obsidian";
 import log from "@/log";
-import ZoteroPlugin from "@/zt-main";
 import type { HelperExtra } from "../template/helper";
 import type { NoteNormailzed } from "../template/helper/item";
 import { DataAnnotation, DataCitation, keyFromItemURI } from "./format";
 import { bgColor, color } from "./parse/color";
+import { Template } from "../template/render";
+import { SettingsService } from "@/settings/base";
+import DatabaseWorker from "../zotero-db/connector/service";
 
 declare global {
   // eslint-disable-next-line no-var, @typescript-eslint/naming-convention, @typescript-eslint/consistent-type-imports
@@ -44,7 +46,14 @@ class Note {
 }
 
 export class NoteParser extends Service {
-  plugin = this.use(ZoteroPlugin);
+  templateRenderer = this.use(Template);
+  settings = this.use(SettingsService);
+  dbWorker = this.use(DatabaseWorker);
+
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
+  }
 
   private citations = new Map<string, { text: string; itemKeys: string[] }>();
   private annotations = new Map<
@@ -58,8 +67,8 @@ export class NoteParser extends Service {
     }
   >();
   tdService = new globalThis.TurndownService({ headingStyle: "atx" })
-    .addRule("color", color(this.plugin.templateRenderer))
-    .addRule("bg-color", bgColor(this.plugin.templateRenderer))
+    .addRule("color", color(this.templateRenderer))
+    .addRule("bg-color", bgColor(this.templateRenderer))
     .addRule("highlight-imported", {
       filter: (node, _opts) => {
         if (node.tagName !== "P") return false;
@@ -176,10 +185,10 @@ export class NoteParser extends Service {
     const attachmentWithAnnotation = new Set(
       [...this.annotations.values()].map((v) => v.attachementKey),
     );
-    const libId = this.plugin.settings.libId;
+    const libId = this.settings.libId ?? 1;
 
     const literatureKeys = uniq([...keyFrom.citations, ...keyFrom.annotations]);
-    const docItems = await this.plugin.databaseAPI
+    const docItems = await this.dbWorker.api
       .getItems(literatureKeys.map((key) => [key, libId]))
       .then(async (itemList) => {
         const items = new Map<
@@ -197,14 +206,14 @@ export class NoteParser extends Service {
             items.set(key, null);
             continue;
           }
-          const attachments = await this.plugin.databaseAPI.getAttachments(
+          const attachments = await this.dbWorker.api.getAttachments(
             docItem.itemID,
             libId,
           );
           const annotations = new Map<string, AnnotationInfo>();
           for (const attachment of attachments) {
             if (!attachmentWithAnnotation.has(attachment.key)) continue;
-            const annots = await this.plugin.databaseAPI.getAnnotations(
+            const annots = await this.dbWorker.api.getAnnotations(
               attachment.itemID,
               libId,
             );
@@ -220,7 +229,7 @@ export class NoteParser extends Service {
         }
         return items;
       });
-    const tags = await this.plugin.databaseAPI.getTags(
+    const tags = await this.dbWorker.api.getTags(
       [...docItems.values()]
         .flatMap((v) =>
           v
@@ -252,8 +261,8 @@ export class NoteParser extends Service {
           } as HelperExtra;
         });
 
-        const citation = this.plugin.templateRenderer.renderCitations(items, {
-          plugin: this.plugin,
+        const citation = this.templateRenderer.renderCitations(items, {
+          plugin: this._plugin as any, // TODO: Refactor HelperExtra to not need plugin
         });
         return citation;
       })
@@ -275,7 +284,7 @@ export class NoteParser extends Service {
             `annotation key not found: ${annotData.annotationKey}`,
           );
         }
-        const markdown = this.plugin.templateRenderer.renderAnnot(
+        const markdown = this.templateRenderer.renderAnnot(
           {
             ...annotation,
             ztnote: {
@@ -298,7 +307,7 @@ export class NoteParser extends Service {
             notes: [],
             tags,
           },
-          { plugin: this.plugin },
+          { plugin: this._plugin as any }, // TODO: Refactor HelperExtra to not need plugin
         );
         if (!annotData.inline) {
           return "\n" + markdown + "\n";

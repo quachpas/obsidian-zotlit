@@ -1,4 +1,4 @@
-import type { Transaction } from "@aidenlx/better-sqlite3";
+import type betterSqlite3 from "better-sqlite3";
 import type { IDLibID, KeyLibID } from "../../utils/index.js";
 import { PreparedBase } from "../../utils/index.js";
 import type { Output, OutputSql } from "./base.js";
@@ -26,7 +26,7 @@ export class Items extends PreparedBase<Input, OutputSql, IDItemMap> {
       }
       return rec;
     }, {} as IDItemMap);
-  trx: Transaction = this.database.transaction(this.trxFunc);
+  trx: betterSqlite3.Transaction = this.database.transaction(this.trxFunc);
 
   sql(): string {
     return queryByID;
@@ -56,7 +56,7 @@ export class ItemsByKey extends PreparedBase<InputByKey, OutputSql, IDItemMap> {
       }
       return rec;
     }, {} as KeyItemMap);
-  trx: Transaction = this.database.transaction(this.trxFunc);
+  trx: betterSqlite3.Transaction = this.database.transaction(this.trxFunc);
 
   sql(): string {
     return queryByKey;

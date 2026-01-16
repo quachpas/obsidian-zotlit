@@ -56,6 +56,9 @@ importers:
       '@preact/compat':
         specifier: ~17.1.2
         version: 17.1.2(preact@10.11.3)
+      '@preact/signals-core':
+        specifier: ^1.4
+        version: 1.4.0
       '@radix-ui/react-collapsible':
         specifier: ~1.0.2
         version: 1.0.2(@preact/compat@17.1.2(preact@10.11.3))(@preact/compat@17.1.2(preact@10.11.3))
@@ -177,9 +180,6 @@ importers:
         specifier: ~4.0.1
         version: 4.0.3
     devDependencies:
-      '@aidenlx/better-sqlite3':
-        specifier: 11.1.2
-        version: 11.1.2
       '@aidenlx/esbuild-plugin-inline-worker':
         specifier: workspace:*
         version: link:../../utils/esbuild-inline-worker
@@ -240,6 +240,9 @@ importers:
       autoprefixer:
         specifier: ~10.4.13
         version: 10.4.14(postcss@8.4.21)
+      better-sqlite3:
+        specifier: 12.6.0
+        version: 12.6.0
       builtin-modules:
         specifier: ^3.2.0
         version: 3.3.0
@@ -501,9 +504,6 @@ importers:
 
   ../../lib/database:
     dependencies:
-      '@aidenlx/better-sqlite3':
-        specifier: 11.1.2
-        version: 11.1.2
       '@mobily/ts-belt':
         specifier: ^4.0.0-rc.5
         version: 4.0.0-rc.5
@@ -516,6 +516,9 @@ importers:
       assert-never:
         specifier: ^1.2.1
         version: 1.2.1
+      better-sqlite3:
+        specifier: 12.6.0
+        version: 12.6.0
     devDependencies:
       '@aidenlx/eslint-config':
         specifier: workspace:*
@@ -541,9 +544,6 @@ importers:
 
   ../../lib/db-worker:
     dependencies:
-      '@aidenlx/better-sqlite3':
-        specifier: 11.1.2
-        version: 11.1.2
       '@aidenlx/workerpool':
         specifier: workspace:*
         version: link:../workerpool
@@ -562,6 +562,9 @@ importers:
       assert-never:
         specifier: ^1.2.1
         version: 1.2.1
+      better-sqlite3:
+        specifier: 12.6.0
+        version: 12.6.0
       flexsearch:
         specifier: 0.7.31
         version: 0.7.31(patch_hash=uyw6ivpbfx7v2sahyemwiyw3f4)
@@ -701,9 +704,6 @@ importers:
       to-use:
         specifier: ^0.3.2
         version: 0.3.2
-      typescript:
-        specifier: ~5.1.6
-        version: 5.1.6
     devDependencies:
       '@types/node':
         specifier: '16'
@@ -828,7 +828,7 @@ importers:
         version: link:../../common/config/eslint
       '@rmp135/sql-ts':
         specifier: ~1.15.0
-        version: 1.15.1(better-sqlite3@7.6.2)
+        version: 1.15.1(better-sqlite3@12.6.0)
       '@types/eslint':
         specifier: ~8.4.6
         version: 8.4.10
@@ -836,14 +836,14 @@ importers:
         specifier: ^17.0.10
         version: 17.0.45
       better-sqlite3:
-        specifier: ^7.5.0
-        version: 7.6.2
+        specifier: 12.6.0
+        version: 12.6.0
       eslint:
         specifier: ~8.36.0
         version: 8.36.0
       knex:
         specifier: ~2.3.0
-        version: 2.3.0(better-sqlite3@7.6.2)
+        version: 2.3.0(better-sqlite3@12.6.0)
       typescript:
         specifier: ~5.1.6
         version: 5.1.6
@@ -977,9 +977,6 @@ importers:
         version: 5.1.6
 
 packages:
-
-  '@aidenlx/better-sqlite3@11.1.2':
-    resolution: {integrity: sha512-rCFLqadESyoTIVkgTTQBLaZg9untizB0ZsijMpsFnDGA7Dy5ssknodpXR6vu68yPqlF9pMO2L3liS9FMlcmNcw==}
 
   '@aidenlx/cm-language@6.3.1':
     resolution: {integrity: sha512-E4IPzTMtmpJ5qFZDNn/o4OfEmj8CidXcCNky50qyEYh+r8er1+qiaiOpR5rlYLk9Y4d+lAg65cnTDGHaNM6GRQ==}
@@ -3382,8 +3379,9 @@ packages:
   before-after-hook@2.2.3:
     resolution: {integrity: sha512-NzUnlZexiaH/46WDhANlyR2bXRopNg4F/zuSA3OpZnllCUgRaOF2znDioDWrmbNVsuZk6l9pMquQB38cfBZwkQ==}
 
-  better-sqlite3@7.6.2:
-    resolution: {integrity: sha512-S5zIU1Hink2AH4xPsN0W43T1/AJ5jrPh7Oy07ocuW/AKYYY02GWzz9NH0nbSMn/gw6fDZ5jZ1QsHt1BXAwJ6Lg==}
+  better-sqlite3@12.6.0:
+    resolution: {integrity: sha512-FXI191x+D6UPWSze5IzZjhz+i9MK9nsuHsmTX9bXVl52k06AfZ2xql0lrgIUuzsMsJ7Vgl5kIptvDgBLIV3ZSQ==}
+    engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
 
   big-integer@1.6.51:
     resolution: {integrity: sha512-GPEid2Y9QU1Exl1rpO9B2IPJGHPSupF5GnVIP0blYvNOMer2bTvSWs1jGOUg04hTmu67nmLsQ9TBo1puaotBHg==}
@@ -9045,15 +9043,10 @@ packages:
     hasBin: true
 
 neverBuiltDependencies:
-  - '@aidenlx/better-sqlite3'
+  - better-sqlite3
   - electron
 
 snapshots:
-
-  '@aidenlx/better-sqlite3@11.1.2':
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.1
 
   '@aidenlx/cm-language@6.3.1':
     dependencies:
@@ -11098,14 +11091,14 @@ snapshots:
 
   '@repeaterjs/repeater@3.0.4': {}
 
-  '@rmp135/sql-ts@1.15.1(better-sqlite3@7.6.2)':
+  '@rmp135/sql-ts@1.15.1(better-sqlite3@12.6.0)':
     dependencies:
       change-case: 4.1.2
       handlebars: 4.7.7
-      knex: 1.0.7(better-sqlite3@7.6.2)
+      knex: 1.0.7(better-sqlite3@12.6.0)
       yargs: 17.7.1
     optionalDependencies:
-      better-sqlite3: 7.6.2
+      better-sqlite3: 12.6.0
     transitivePeerDependencies:
       - '@vscode/sqlite3'
       - pg-native
@@ -12055,7 +12048,7 @@ snapshots:
 
   before-after-hook@2.2.3: {}
 
-  better-sqlite3@7.6.2:
+  better-sqlite3@12.6.0:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.1
@@ -15262,7 +15255,7 @@ snapshots:
 
   kleur@4.1.5: {}
 
-  knex@1.0.7(better-sqlite3@7.6.2):
+  knex@1.0.7(better-sqlite3@12.6.0):
     dependencies:
       colorette: 2.0.16
       commander: 9.5.0
@@ -15279,11 +15272,11 @@ snapshots:
       tarn: 3.0.2
       tildify: 2.0.0
     optionalDependencies:
-      better-sqlite3: 7.6.2
+      better-sqlite3: 12.6.0
     transitivePeerDependencies:
       - supports-color
 
-  knex@2.3.0(better-sqlite3@7.6.2):
+  knex@2.3.0(better-sqlite3@12.6.0):
     dependencies:
       colorette: 2.0.19
       commander: 9.5.0
@@ -15300,7 +15293,7 @@ snapshots:
       tarn: 3.0.2
       tildify: 2.0.0
     optionalDependencies:
-      better-sqlite3: 7.6.2
+      better-sqlite3: 12.6.0
     transitivePeerDependencies:
       - supports-color
 

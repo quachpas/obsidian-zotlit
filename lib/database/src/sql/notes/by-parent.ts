@@ -1,4 +1,4 @@
-import type { Statement } from "@aidenlx/better-sqlite3";
+import type betterSqlite3 from "better-sqlite3";
 import { checkID, PreparedWithParser } from "../../utils/index.js";
 import type { Parsed, OutputBase, WithParentItem } from "./base.js";
 import { toParsed, from, select } from "./base.js";
@@ -27,7 +27,7 @@ export class NoteByParent extends PreparedWithParser<OutputSql, Output, Input> {
     return query;
   }
 
-  getKeyStatement: Statement<Input, Pick<OutputSql, "key">> =
+  getKeyStatement: betterSqlite3.Statement<Input, Pick<OutputSql, "key">> =
     this.database.prepare(
       `SELECT key FROM items WHERE itemID = $itemID AND libraryID = $libId`
     );

@@ -2,6 +2,8 @@ import type { IDLibID } from "@obzt/database";
 import { Notice } from "obsidian";
 import log from "@/log";
 import type ZoteroPlugin from "@/zt-main";
+import type { TemplateRenderer } from "@/services/template";
+import type { Context } from "@/services/template/helper";
 
 export async function createNote(
   ids: IDLibID[],
@@ -31,9 +33,9 @@ export async function createNote(
         .then((notes) => plugin.noteParser.normalizeNotes(notes)),
     };
     await plugin.noteFeatures.createNoteForDocItem(item, {
-      note: (template, ctx) =>
+      note: (template: TemplateRenderer, ctx: Context) =>
         template.renderNote(extra, ctx, { tags: [currTopic] }),
-      filename: (template, ctx) => template.renderFilename(extra, ctx),
+      filename: (template: TemplateRenderer, ctx: Context) => template.renderFilename(extra, ctx),
     });
     new Notice(`Created note for ${item.title}`, 1e3);
   }

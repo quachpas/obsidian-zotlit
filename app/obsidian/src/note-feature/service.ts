@@ -3,23 +3,18 @@ import type { ItemKeyGroup } from "@obzt/common";
 import type { RegularItemInfoBase } from "@obzt/database";
 import { Service } from "@ophidian/core";
 
-import type { TFile } from "obsidian";
-import { Notice } from "obsidian";
+import { TFile, Notice, Plugin, App } from "obsidian";
 import {
   cacheAttachmentSelect,
   chooseAnnotAtch,
 } from "@/components/atch-suggest";
 import { getItemKeyOf, isLiteratureNote } from "@/services/note-index";
-import type { TemplateRenderer } from "@/services/template";
+import { Template as TemplateRenderer } from "@/services/template/render";
 import { Template, fromPath } from "@/services/template/eta/preset";
 import type { Context } from "@/services/template/helper/base.js";
-import ZoteroPlugin from "@/zt-main";
 import { AnnotationView, annotViewType } from "./annot-view/view";
 import { CitationEditorSuggest, insertCitationTo } from "./citation-suggest/";
-// import { NoteFields } from "./note-fields/service";
-// import { NoteFieldsView, noteFieldsViewType } from "./note-fields/view";
 import { importNote } from "./note-import";
-import { ProtocolHandler } from "./protocol/service";
 import { openOrCreateNote } from "./quick-switch";
 import {
   ItemDetailsView,
@@ -31,44 +26,57 @@ import {
   templatePreviewViewType,
 } from "./template-preview/preview";
 import { getHelperExtraByAtch, updateNote } from "./update-note";
+import NoteIndex from "@/services/note-index/service";
+import DatabaseWorker from "@/services/zotero-db/connector/service";
+import { SettingsService } from "@/settings/base";
+import { NoteParser } from "@/services/note-parser/service";
 
 class NoteFeatures extends Service {
-  plugin = this.use(ZoteroPlugin);
+  settings = this.use(SettingsService);
+  noteIndex = this.use(NoteIndex);
+  dbWorker = this.use(DatabaseWorker);
+  templateRenderer = this.use(TemplateRenderer);
+  noteParser = this.use(NoteParser);
+  app = this.use(App);
+
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
+  }
 
   // noteFields = this.use(NoteFields);
   // topicImport = this.use(TopicImport);
-  protocol = this.use(ProtocolHandler);
 
   onload(): void {
-    const { plugin } = this;
+    const plugin = this._plugin!;
     const { app } = plugin;
     plugin.addCommand({
       id: "note-quick-switcher",
       name: "Open quick switcher for literature notes",
-      callback: () => openOrCreateNote(plugin),
+      callback: () => openOrCreateNote(plugin as any), // TODO: Fix plugin type in openOrCreateNote
     });
     plugin.registerView(
       annotViewType,
-      (leaf) => new AnnotationView(leaf, plugin),
+      (leaf) => new AnnotationView(leaf, plugin as any), // TODO: Fix plugin type in AnnotationView
     );
     plugin.registerView(
       templatePreviewViewType,
-      (leaf) => new TemplatePreview(leaf, plugin),
+      (leaf) => new TemplatePreview(leaf, plugin as any), // TODO: Fix plugin type in TemplatePreview
     );
     plugin.registerView(
       itemDetailsViewType,
-      (leaf) => new ItemDetailsView(leaf, plugin),
+      (leaf) => new ItemDetailsView(leaf, plugin as any), // TODO: Fix plugin type in ItemDetailsView
     );
     plugin.registerEvent(
       plugin.app.workspace.on("file-menu", (menu, file) => {
-        const tpl = fromPath(file.path, plugin.settings.templateDir);
+        const tpl = fromPath(file.path, this.settings.templateDir ?? "");
         if (tpl?.type !== "ejectable") return;
         menu.addItem((i) =>
           i
             .setIcon("edit")
             .setTitle("Open template preview")
             .onClick(() => {
-              openTemplatePreview(tpl.name, null, plugin);
+              openTemplatePreview(tpl.name, null, plugin as any); // TODO: Fix plugin type in openTemplatePreview
             }),
         );
       }),
@@ -109,18 +117,18 @@ class NoteFeatures extends Service {
       id: "insert-markdown-citation",
       name: "Insert Markdown citation",
       editorCallback: (editor, ctx) =>
-        insertCitationTo(editor, ctx.file, plugin),
+        insertCitationTo(editor, ctx.file, plugin as any), // TODO: Fix plugin type
     });
-    plugin.registerEditorSuggest(new CitationEditorSuggest(plugin));
+    plugin.registerEditorSuggest(new CitationEditorSuggest(plugin as any)); // TODO: Fix plugin type
 
     const updateNote = async (file: TFile, overwrite?: boolean) => {
-      const lib = plugin.settings.libId;
+      const lib = this.settings.libId;
       const itemKey = getItemKeyOf(file, app.metadataCache);
       if (!itemKey) {
         new Notice("Cannot get zotero item key from file name");
         return false;
       }
-      const [item] = await plugin.databaseAPI.getItems([[itemKey, lib]]);
+      const [item] = await this.dbWorker.api.getItems([[itemKey, lib]]);
       if (!item) {
         new Notice("Cannot find zotero item with key " + itemKey);
         return false;
@@ -154,7 +162,7 @@ class NoteFeatures extends Service {
     plugin.addCommand({
       id: "import-note",
       name: "Import note",
-      callback: () => importNote(plugin),
+      callback: () => importNote(plugin as any), // TODO: Fix plugin type
     });
     plugin.registerEvent(
       plugin.app.workspace.on("file-menu", (menu, file) => {
@@ -167,7 +175,7 @@ class NoteFeatures extends Service {
             .setIcon("sync")
             .onClick(() => updateNote(file)),
         );
-        if (!plugin.settings.current?.updateOverwrite)
+        if (!this.settings.current?.updateOverwrite)
           menu.addItem((i) =>
             i
               .setTitle("Force update by overwriting")
@@ -178,7 +186,7 @@ class NoteFeatures extends Service {
     );
     plugin.registerEvent(
       plugin.app.workspace.on("file-menu", (menu, file) => {
-        const tpl = fromPath(file.path, plugin.settings.templateDir);
+        const tpl = fromPath(file.path, this.settings.templateDir ?? "");
         if (tpl?.type !== "ejectable") return;
         menu.addItem((i) =>
           i
@@ -197,8 +205,8 @@ class NoteFeatures extends Service {
     );
   }
   async openNote(item: ItemKeyGroup, slience = false): Promise<boolean> {
-    const { workspace } = this.plugin.app;
-    const { noteIndex } = this.plugin;
+    const { workspace } = this.app;
+    const { noteIndex } = this;
 
     const info = noteIndex.getNotesFor(item);
     if (!info.length) {
@@ -222,7 +230,7 @@ class NoteFeatures extends Service {
       filename: (template: TemplateRenderer, ctx: Context) => string;
     },
   ) {
-    const { noteIndex } = this.plugin;
+    const { noteIndex } = this;
 
     const info = noteIndex.getNotesFor(docItem);
     if (info.length) {
@@ -230,17 +238,17 @@ class NoteFeatures extends Service {
       throw new NoteExistsError(info, docItem.key);
     }
 
-    const { vault, fileManager } = this.plugin.app,
-      { literatureNoteFolder: folder } = this.plugin.settings.current,
-      template = this.plugin.templateRenderer;
+    const { vault, fileManager } = this.app,
+      { literatureNoteFolder: folder } = this.settings.current ?? { literatureNoteFolder: "" },
+      template = this.templateRenderer;
 
     const filepath = join(
       folder,
-      render.filename(template, { plugin: this.plugin }),
+      render.filename(template, { plugin: this._plugin as any }), // TODO: Fix plugin type
     );
     const existingFile = vault.getAbstractFileByPath(filepath);
     if (existingFile) {
-      if (getItemKeyOf(existingFile, this.plugin.app.metadataCache)) {
+      if (getItemKeyOf(existingFile, this.app.metadataCache)) {
         // only throw error if the note is linked to the same zotero item
         throw new NoteExistsError([filepath], docItem.key);
       }
@@ -251,7 +259,7 @@ class NoteFeatures extends Service {
       vault.getRoot(),
       filepath,
       render.note(template, {
-        plugin: this.plugin,
+        plugin: this._plugin as any, // TODO: Fix plugin type
         sourcePath: filepath,
       }),
     );
@@ -259,23 +267,23 @@ class NoteFeatures extends Service {
   }
 
   async createNoteForDocItemFull(item: RegularItemInfoBase): Promise<string> {
-    const libId = this.plugin.settings.libId;
-    const allAttachments = await this.plugin.databaseAPI.getAttachments(
+    const libId = this.settings.libId ?? 1;
+    const allAttachments = await this.dbWorker.api.getAttachments(
       item.itemID,
       libId,
     );
-    const selected = await chooseAnnotAtch(allAttachments, this.plugin.app);
+    const selected = await chooseAnnotAtch(allAttachments, this.app);
     if (selected) {
       cacheAttachmentSelect(selected, item);
     }
-    const notes = await this.plugin.databaseAPI
-      .getNotes(item.itemID, libId)
-      .then((notes) => this.plugin.noteParser.normalizeNotes(notes));
+    const notes = await this.dbWorker.api
+      .getNotes(item.itemID, libId ?? 1)
+      .then((notes) => this.noteParser.normalizeNotes(notes));
 
     const extraByAtch = await getHelperExtraByAtch(
       item,
       { all: allAttachments, selected: selected ? [selected] : [], notes },
-      this.plugin,
+      this._plugin as any, // TODO: Fix plugin type
     );
     const extra = Object.values(extraByAtch)[0];
     const note = await this.createNoteForDocItem(item, {
@@ -286,14 +294,14 @@ class NoteFeatures extends Service {
   }
 
   async updateNoteFromId(id: ItemKeyGroup & { libraryID: number }) {
-    const { noteIndex, databaseAPI } = this.plugin;
+    const { noteIndex, dbWorker: databaseAPI } = this;
 
     const info = noteIndex.getNotesFor(id);
     if (!info.length) {
       new Notice(`No literature note found for zotero item with key ${id.key}`);
       return;
     }
-    const [item] = await databaseAPI.getItems([[id.key, id.libraryID]]);
+    const [item] = await databaseAPI.api.getItems([[id.key, id.libraryID]]);
     if (!item) {
       new Notice(`Cannot find zotero item with key ${id.key}`);
       return;
@@ -302,7 +310,7 @@ class NoteFeatures extends Service {
   }
 
   async updateNote(item: RegularItemInfoBase, overwrite?: boolean) {
-    const summary = await updateNote(item, this.plugin, overwrite);
+    const summary = await updateNote(item, this._plugin as any, overwrite); // TODO: Fix plugin type
     if (summary) {
       if (summary.addedAnnots > 0 || summary.updatedAnnots > 0)
         new Notice(

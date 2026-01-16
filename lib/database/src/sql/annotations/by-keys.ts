@@ -1,4 +1,4 @@
-import type { Transaction } from "@aidenlx/better-sqlite3";
+import type betterSqlite3 from "better-sqlite3";
 import { checkID, PreparedBase } from "../../utils/index.js";
 import type { OutputBase, Parsed, WithParentItem } from "./base.js";
 import { toParsed, from, select } from "./base.js";
@@ -32,7 +32,7 @@ interface Input {
 }
 
 export class AnnotByKeys extends PreparedBase<InputSql, OutputSql, Output> {
-  trxCache: Record<number, Transaction> = {};
+  trxCache: Record<number, betterSqlite3.Transaction> = {};
   sql(): string {
     return query;
   }

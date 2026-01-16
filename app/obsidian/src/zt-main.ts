@@ -6,7 +6,8 @@ import { use } from "@ophidian/core";
 import type { App, PluginManifest } from "obsidian";
 import { Plugin } from "obsidian";
 
-import log, { LogService } from "@/log";
+import log from "@/log";
+import { LogService } from "@/services/log-service";
 import type { PluginAPI } from "./api";
 import checkLib from "./install-guide/index.jsx";
 import NoteFeatures from "./note-feature/service";
@@ -25,6 +26,7 @@ import {
 } from "./services/zotero-db";
 import ZoteroSettingTab from "./setting-tab";
 import { useSettings } from "./settings/base";
+import { ProtocolHandler } from "./note-feature/protocol/service";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -54,6 +56,7 @@ export default class ZoteroPlugin extends Plugin {
   templateEditor = this.use(TemplateEditorHelper);
   noteFeatures = this.use(NoteFeatures);
   noteParser = this.use(NoteParser);
+  protocolHandler = this.use(ProtocolHandler);
 
   get databaseAPI() {
     return this.dbWorker.api;
@@ -71,6 +74,16 @@ export default class ZoteroPlugin extends Plugin {
   onload() {
     log.info("loading ZotLit");
     this.addSettingTab(new ZoteroSettingTab(this));
+    this.dbWorker.initializePlugin(this);
+    this.noteIndex.initializePlugin(this);
+    this.server.initializePlugin(this);
+    this.templateEditor.initializePlugin(this);
+    this.templateRenderer.initializePlugin(this);
+    this.noteFeatures.initializePlugin(this);
+    this.pdfParser.initializePlugin(this);
+    this.noteParser.initializePlugin(this);
+    this.citekeyClick.initializePlugin(this);
+    this.protocolHandler.initializePlugin(this);
     globalThis.zoteroAPI = {
       version: this.manifest.version,
       getDocItems: (ids) => {

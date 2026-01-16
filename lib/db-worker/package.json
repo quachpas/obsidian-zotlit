@@ -23,7 +23,7 @@
     "@types/better-sqlite3": "~7.6.11"
   },
   "dependencies": {
-    "@aidenlx/better-sqlite3": "11.1.2",
+    "better-sqlite3": "12.6.0",
     "@obzt/zotero-type": "workspace:*",
     "@aidenlx/workerpool": "workspace:*",
     "@obzt/common": "workspace:*",

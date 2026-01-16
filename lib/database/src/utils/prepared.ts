@@ -1,16 +1,16 @@
-import type { Database, Statement } from "@aidenlx/better-sqlite3";
+import type betterSqlite3 from "better-sqlite3";
 
 export abstract class PreparedBase<
   Input extends {} | unknown[],
   OutputSql,
-  Output = OutputSql[]
+  Output = OutputSql[],
 > {
-  protected statement: Statement<Input, OutputSql>;
+  protected statement: betterSqlite3.Statement<Input, OutputSql>;
   abstract sql(): string;
-  constructor(database: Database) {
+  constructor(database: betterSqlite3.Database) {
     this.statement = database.prepare(this.sql());
   }
-  protected get database(): Database {
+  protected get database(): betterSqlite3.Database {
     return this.statement.database;
   }
 
@@ -25,12 +25,12 @@ export abstract class PreparedBase<
 }
 
 export interface PreparedBaseCtor {
-  new (database: Database): PreparedBase<any, any, any>;
+  new (database: betterSqlite3.Database): PreparedBase<any, any, any>;
 }
 
 export abstract class Prepared<
   Output,
-  Input extends {} | unknown[]
+  Input extends {} | unknown[],
 > extends PreparedBase<Input, Output> {
   query(input: Input): Output[] {
     return this.all(input);

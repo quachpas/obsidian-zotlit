@@ -6,9 +6,8 @@ import {
   SettingsService as _SettingsService,
   getContext,
 } from "@ophidian/core";
-import type { Component } from "obsidian";
+import { Plugin, type Component } from "obsidian";
 import { getBinaryFullPath } from "@/install-guide/version";
-import ZoteroPlugin from "@/zt-main";
 import { getDefaultSettings, type Settings } from "./service";
 
 export function skip<T extends (...args: any[]) => any>(
@@ -26,11 +25,26 @@ export function skip<T extends (...args: any[]) => any>(
 }
 
 export class SettingsService extends _SettingsService<Settings> {
-  #plugin = this.use(ZoteroPlugin);
+  #plugin?: Plugin;
+
+  constructor() {
+    super();
+    // @ts-ignore
+    if (!this.current) {
+      // @ts-ignore
+      this.current = {} as Settings;
+    }
+  }
+
+  initialize(plugin: Plugin) {
+    this.#plugin = plugin;
+  }
+
   /** cache result */
   #nativeBinding?: string;
   get nativeBinding(): string {
     if (this.#nativeBinding) return this.#nativeBinding;
+    if (!this.#plugin) throw new Error("SettingsService not initialized");
     const binaryFullPath = getBinaryFullPath(this.#plugin.manifest);
     if (binaryFullPath) {
       this.#nativeBinding = binaryFullPath;
@@ -51,19 +65,19 @@ export class SettingsService extends _SettingsService<Settings> {
   }
 
   @calc get zoteroDbPath(): string {
-    return join(this.current?.zoteroDataDir, "zotero.sqlite");
+    return join(this.current?.zoteroDataDir ?? "", "zotero.sqlite");
   }
 
   @calc get bbtSearchDbPath(): string {
-    return join(this.current?.zoteroDataDir, "better-bibtex-search.sqlite");
+    return join(this.current?.zoteroDataDir ?? "", "better-bibtex-search.sqlite");
   }
 
   @calc get bbtMainDbPath(): string {
-    return join(this.current?.zoteroDataDir, "better-bibtex.sqlite");
+    return join(this.current?.zoteroDataDir ?? "", "better-bibtex.sqlite");
   }
 
   @calc get zoteroCacheDirPath(): string {
-    return join(this.current?.zoteroDataDir, "cache");
+    return join(this.current?.zoteroDataDir ?? "", "cache");
   }
 
   @calc get dbConnParams(): [paths: DatabasePaths, opts: DatabaseOptions] {
@@ -80,6 +94,9 @@ export class SettingsService extends _SettingsService<Settings> {
 
 export function useSettings(owner: Component & Partial<Useful>) {
   const svc = getContext(owner)(SettingsService) as SettingsService;
+  if (owner instanceof Plugin) {
+    svc.initialize(owner);
+  }
   svc.addDefaults(getDefaultSettings());
   return svc;
 }

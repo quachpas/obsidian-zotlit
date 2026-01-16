@@ -5,10 +5,9 @@ import type { AnnotationInfo } from "@obzt/database";
 import { getCacheImagePath } from "@obzt/database";
 import { AnnotationType } from "@obzt/zotero-type";
 import { Service, calc } from "@ophidian/core";
-import { FileSystemAdapter, normalizePath, Notice } from "obsidian";
+import { App, FileSystemAdapter, normalizePath, Notice } from "obsidian";
 import log, { logError } from "@/log";
 import { SettingsService } from "@/settings/base";
-import ZoteroPlugin from "@/zt-main";
 
 export class ImgCacheImporter extends Service {
   onload() {
@@ -18,16 +17,14 @@ export class ImgCacheImporter extends Service {
     await this.flush();
   }
 
-  get app() {
-    return this.use(ZoteroPlugin).app;
-  }
+  app = this.use(App);
 
   settings = this.use(SettingsService);
 
   private queue = new Map<string, () => Promise<boolean>>();
 
   getCachePath(annot: AnnotationInfo) {
-    return getCacheImagePath(annot, this.settings.current?.zoteroDataDir);
+    return getCacheImagePath(annot, this.settings.current?.zoteroDataDir ?? "");
   }
 
   @calc
@@ -40,7 +37,7 @@ export class ImgCacheImporter extends Service {
   }
   @calc
   get imgExcerptDir(): string | null {
-    return this.mode ? this.path : null;
+    return this.mode ? (this.path ?? null) : null;
   }
 
   private getInVaultPath(annot: AnnotationInfo): string | null {

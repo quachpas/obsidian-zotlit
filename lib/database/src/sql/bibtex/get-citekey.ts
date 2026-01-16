@@ -1,4 +1,4 @@
-import type { Transaction } from "@aidenlx/better-sqlite3";
+import type betterSqlite3 from "better-sqlite3";
 import type { IDLibID } from "../../utils/index.js";
 import { PreparedBase } from "../../utils/index.js";
 import { BBT_MAIN_DB_NAME, BBT_SEARCH_DB_NAME } from "./base.js";
@@ -50,7 +50,7 @@ export class BibtexGetCitekeyV1 extends PreparedBase<
       }
       return rec;
     }, {} as Output);
-  trx: Transaction = this.database.transaction(this.trxFunc);
+  trx: betterSqlite3.Transaction = this.database.transaction(this.trxFunc);
 
   sql(): string {
     return sqlMain;
@@ -74,7 +74,7 @@ export class BibtexGetCitekeyV0 extends PreparedBase<
       }
       return rec;
     }, {} as Output);
-  trx: Transaction = this.database.transaction(this.trxFunc);
+  trx: betterSqlite3.Transaction = this.database.transaction(this.trxFunc);
 
   sql(): string {
     return sqlSearch;

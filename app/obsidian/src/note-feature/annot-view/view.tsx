@@ -50,7 +50,7 @@ export class AnnotationView extends DerivedFileView {
         ...state,
         follow: "ob-note",
         itemId: item.itemID,
-        attachmentId: attachments?.[0] ?? undefined,
+        attachmentId: attachments?.[0] ?? -1,
       }));
       return true;
     })().then((result) => {
@@ -196,7 +196,7 @@ export class AnnotationView extends DerivedFileView {
       getImgSrc: (annotation) => {
         const path = getCacheImagePath(
           annotation,
-          plugin.settings.current?.zoteroDataDir,
+          plugin.settings.current?.zoteroDataDir ?? "",
         );
         return getFSResourcePath(path);
       },

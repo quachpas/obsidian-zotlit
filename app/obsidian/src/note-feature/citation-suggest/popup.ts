@@ -35,6 +35,7 @@ export async function insertCitationTo(
       file,
     },
     plugin.templateRenderer,
+    plugin
   );
   return true;
 }

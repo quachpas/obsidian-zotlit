@@ -1,4 +1,4 @@
-import { defaultSettingsLog } from "@/log";
+import { defaultSettingsLog } from "./log";
 import { defaultSettingsSuggester } from "@/note-feature/citation-suggest/settings";
 import { defaultSettingsNoteIndex } from "@/services/note-index/settings";
 import { defaultSettingsServer } from "@/services/server/settings";

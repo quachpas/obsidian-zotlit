@@ -13,7 +13,7 @@ export async function openTemplatePreview(
   { app, settings }: { app: App; settings: SettingsService },
 ) {
   const { workspace } = app;
-  const file = getTemplateFile(type, settings.templateDir, app);
+  const file = getTemplateFile(type, settings.templateDir ?? "", app);
   if (!file || !(file instanceof TFile)) {
     new Notice("Template file not found: " + type);
     return;

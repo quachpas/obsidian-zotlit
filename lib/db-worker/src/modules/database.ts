@@ -2,8 +2,8 @@ import { statSync } from "fs";
 import type {
   Database as DatabaseInstance,
   Statement,
-} from "@aidenlx/better-sqlite3";
-import DatabaseConstructor from "@aidenlx/better-sqlite3";
+} from "better-sqlite3";
+import DatabaseConstructor from "better-sqlite3";
 import log from "@log";
 import type { PreparedBase, PreparedBaseCtor } from "@obzt/database";
 import type { DatabaseOptions } from "@obzt/database/api";
@@ -33,13 +33,16 @@ interface DatabaseListItem {
 
 export default class Database {
   private database: {
-    instance: DatabaseInstance;
+    instance: betterSqlite3.Database;
     mtime: number;
     file: string;
-    prepared: Map<PreparedBaseCtor, PreparedBase<any, any, any>>;
-    existStatements: Record<string, Statement>;
+    prepared: Map<
+      database.PreparedBaseCtor,
+      database.PreparedBase<any, any, any>
+    >;
+    existStatements: Record<string, betterSqlite3.Statement>;
   } | null = null;
-  public get instance(): DatabaseInstance | undefined {
+  public get instance(): betterSqlite3.Database | undefined {
     return this.database?.instance;
   }
 
@@ -129,8 +132,8 @@ export default class Database {
     this.database = null;
   }
 
-  prepare<P extends PreparedBase<any, any, any>>(ctor: {
-    new (database: DatabaseInstance): P;
+  prepare<P extends database.PreparedBase<any, any, any>>(ctor: {
+    new (database: betterSqlite3.Database): P;
   }): P {
     if (!this.database) throw new DatabaseNotSetError();
     const existing = this.database.prepared.get(ctor);
@@ -149,9 +152,10 @@ export default class Database {
  */
 function initDatabase(path: string, opts: DatabaseOptions) {
   // immutable tag to prevent database locked error
-  return new DatabaseConstructor(`file:${path}?mode=ro&immutable=1`, {
+  // Use file:// URI for absolute paths (assuming unix-like)
+  const uri = `file://${path}?mode=ro&immutable=1`;
+  return new DatabaseConstructor(uri, {
     nativeBinding: opts.nativeBinding,
-    uriPath: true,
     verbose: process.env.SQL_VERBOSE
       ? (message?: any, ...additionalArgs: any[]) =>
           log.trace(`SQL: ${message}`, ...additionalArgs)

@@ -22,9 +22,9 @@ export function EjectableTemplate({ type }: { type: TplType.Ejectable }) {
   const [resetIconRef] = useIconRef<HTMLButtonElement>("reset");
 
   const [ejected, setEjected] = useState(() =>
-    isEjected(type, { app, folder: settings.templateDir }),
+    isEjected(type, { app, folder: settings.templateDir ?? "" }),
   );
-  const filepath = toPath(type, settings.templateDir);
+  const filepath = toPath(type, settings.templateDir ?? "");
   useEffect(() => {
     const refs = [
       app.vault.on("delete", (f) => {
@@ -87,7 +87,7 @@ export function EjectableTemplate({ type }: { type: TplType.Ejectable }) {
           onClick={async () => {
             const ejected = await eject(type, {
               app: app,
-              folder: settings.templateDir,
+              folder: settings.templateDir ?? "",
             });
             setEjected(ejected);
           }}
@@ -132,17 +132,17 @@ export function useEjectAll() {
 
   const [ejected, setEjected] = useState(() =>
     TemplateNames.Ejectable.every((type) =>
-      isEjected(type, { app, folder: settings.templateDir }),
+      isEjected(type, { app, folder: settings.templateDir ?? "" }),
     ),
   );
   const ejectBtnRef = useExtraButton(
     async () => {
       const toEject = TemplateNames.Ejectable.filter(
-        (type) => !isEjected(type, { app, folder: settings.templateDir }),
+        (type) => !isEjected(type, { app, folder: settings.templateDir ?? "" }),
       );
       await Promise.all(
         toEject.map((type) =>
-          eject(type, { app, folder: settings.templateDir }),
+          eject(type, { app, folder: settings.templateDir ?? "" }),
         ),
       );
       setEjected(true);

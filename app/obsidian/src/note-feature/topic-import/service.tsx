@@ -1,18 +1,24 @@
 import { ObsidianContext } from "@obzt/components";
 import { Service } from "@ophidian/core";
-import { getAllTags, TFile } from "obsidian";
+import { getAllTags, TFile, App, Plugin } from "obsidian";
 
 import type { CachedMetadata, TAbstractFile } from "obsidian";
 import ReactDOM from "react-dom";
 import { context } from "@/components/basic/context";
 import { untilDbRefreshed } from "@/utils/once";
-import ZoteroPlugin from "@/zt-main";
 import { createNote } from "./create-note";
 import { TopicImportStatus } from "./status";
 import { createStore, selectDisabled, topicPrefix } from "./utils";
+import { Server } from "@/services/server/service";
 
 export class TopicImport extends Service {
-  plugin = this.use(ZoteroPlugin);
+  app = this.use(App);
+  server = this.use(Server);
+
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
+  }
 
   store = createStore();
 
@@ -33,7 +39,7 @@ export class TopicImport extends Service {
       return;
     }
     this.file = file;
-    const meta = this.plugin.app.metadataCache.getFileCache(file);
+    const meta = this.app.metadataCache.getFileCache(file);
     if (!meta) {
       this.store.getState().emptyTopics();
       return;
@@ -65,8 +71,11 @@ export class TopicImport extends Service {
   }
 
   onload(): void {
-    this.plugin.registerEvent(
-      this.plugin.server.on("bg:notify", async (_p, data) => {
+    const plugin = this._plugin;
+    if (!plugin) throw new Error("Plugin not initialized");
+
+    this.registerEvent(
+      this.server.on("bg:notify", async (_p, data) => {
         if (
           data.event !== "regular-item/update" ||
           !this.topic ||
@@ -74,35 +83,35 @@ export class TopicImport extends Service {
         )
           return;
 
-        const [task, cancel] = untilDbRefreshed(this.plugin.app, {
+        const [task, cancel] = untilDbRefreshed(this.app, {
           waitAfterEvent: 1e3,
         });
         cancel && this.register(cancel);
         await task;
         await createNote(data.add, {
           currTopic: this.topic,
-          plugin: this.plugin,
+          plugin: plugin as any, // TODO: Fix plugin type
         });
       }),
     );
     this.registerEvent(
-      this.plugin.app.workspace.on("file-open", (file) =>
+      this.app.workspace.on("file-open", (file) =>
         this.onFileOpen(file),
       ),
     );
     this.registerEvent(
-      this.plugin.app.metadataCache.on("changed", (file, _d, cache) =>
+      this.app.metadataCache.on("changed", (file, _d, cache) =>
         this.onMetaUpdate(file, cache, false),
       ),
     );
-    this.onFileOpen(this.plugin.app.workspace.getActiveFile(), true);
+    this.onFileOpen(this.app.workspace.getActiveFile(), true);
     this.register(
       this.store.subscribe((state, prev) => {
         if (state.watching === prev.watching) return;
-        this.onFileOpen(this.plugin.app.workspace.getActiveFile(), true);
+        this.onFileOpen(this.app.workspace.getActiveFile(), true);
       }),
     );
-    const statusBarItem = this.plugin.addStatusBarItem();
+    const statusBarItem = plugin.addStatusBarItem();
     statusBarItem.addClass("obzt");
     ReactDOM.render(
       <ObsidianContext.Provider value={context}>

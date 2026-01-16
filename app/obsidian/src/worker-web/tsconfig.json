@@ -11,8 +11,13 @@
     "moduleResolution": "Bundler",
     "module": "ESNext",
     "noEmit": false,
-    "paths": {}
+    "paths": {
+      "@aidenlx/workerpool/worker": ["../../../lib/workerpool/src/worker/index"],
+      "@aidenlx/workerpool": ["../../../lib/workerpool/src/web/index"],
+      "@aidenlx/esbuild-plugin-inline-worker/*": ["../../../utils/esbuild-inline-worker/src/*"],
+      "@preact/signals-core": ["../../../common/temp/node_modules/.pnpm/@preact+signals-core@1.4.0/node_modules/@preact/signals-core"]
+    }
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "**/*.d.ts"],
   "exclude": []
 }

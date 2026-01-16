@@ -5,18 +5,17 @@ import type { AnnotationInfo } from "@obzt/database";
 import { AnnotationType } from "@obzt/zotero-type";
 import { Service } from "@ophidian/core";
 
-import type { App } from "obsidian";
+import { Plugin, type App } from "obsidian";
 import { MarkdownRenderChild, MarkdownRenderer } from "obsidian";
 import workerCode from "worker:@/worker-web/annot-block/main";
 
 import log, { logError } from "@/log";
-import type { ZoteroDatabase } from "@/services/zotero-db/database";
+import { ZoteroDatabase } from "@/services/zotero-db/database";
 import type {
   AnnotBlockWorkerAPI,
   AnnotDetails,
   AnnotInfo,
 } from "@/worker-web/annot-block/api";
-import ZoteroPlugin from "@/zt-main";
 
 class AnnotBlockWorker extends WebWorkerHandler {
   initWebWorker(): Worker {
@@ -32,7 +31,12 @@ class AnnotBlockWorkerPool extends WorkerPool<AnnotBlockWorkerAPI> {
 }
 
 export class AnnotBlock extends Service {
-  plugin = this.use(ZoteroPlugin);
+  database = this.use(ZoteroDatabase);
+
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
+  }
 
   #instance = new AnnotBlockWorkerPool();
 
@@ -41,14 +45,14 @@ export class AnnotBlock extends Service {
   }
 
   onload(): void {
-    this.plugin.registerMarkdownCodeBlockProcessor(
+    this._plugin?.registerMarkdownCodeBlockProcessor(
       "zotero-annot",
       (source, el, ctx) => {
         const child = new AnnotBlockRenderChild(
           el,
-          this.plugin.database,
+          this.database,
           this.api,
-          this.plugin.app,
+          this._plugin!.app,
         );
         ctx.addChild(child);
         child.load();
@@ -100,7 +104,7 @@ class AnnotBlockRenderChild extends MarkdownRenderChild {
     try {
       const annotations = await this.db.api.getAnnotFromKey(
         info.map(({ annotKey }) => annotKey),
-        this.db.settings.libId,
+        this.db.settings.libId!,
       );
 
       const annotDetails = info.map(({ annotKey, ...props }) => ({

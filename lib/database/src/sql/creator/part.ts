@@ -1,5 +1,5 @@
-import type { Transaction } from "@aidenlx/better-sqlite3";
-import { fromPairs } from "@mobily/ts-belt/Dict";
+import * as Dict from "@mobily/ts-belt/Dict";
+import type betterSqlite3 from "better-sqlite3";
 import type { IDLibID } from "../../utils/index.js";
 import { PreparedBase } from "../../utils/index.js";
 import type { Output as OutputSql } from "./base.js";
@@ -19,13 +19,13 @@ export class Creators extends PreparedBase<Input, OutputSql, Output> {
     itemIds.map(
       ([itemId, libId]) => [itemId, this.all({ itemId, libId })] as const,
     );
-  trx: Transaction = this.database.transaction(this.trxFunc);
+  trx: betterSqlite3.Transaction = this.database.transaction(this.trxFunc);
 
   sql(): string {
     return query;
   }
 
   query(items: IDLibID[]): Output {
-    return fromPairs((this.trx as Creators["trxFunc"])(items));
+    return Dict.fromPairs((this.trx as Creators["trxFunc"])(items));
   }
 }

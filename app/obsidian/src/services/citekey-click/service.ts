@@ -6,12 +6,15 @@ import type {
   MarkdownView,
   EditorPosition,
   MarkdownEditView,
+  Plugin,
 } from "obsidian";
-import { Notice } from "obsidian";
+import { App, Notice } from "obsidian";
 
 import { untilWorkspaceReady, waitUntil } from "@/utils/once";
-import ZoteroPlugin from "@/zt-main";
-import type NoteIndex from "../note-index/service";
+import { SettingsService } from "@/settings/base";
+import DatabaseWorker from "../zotero-db/connector/service";
+import NoteFeatures from "@/note-feature/service";
+import NoteIndex from "../note-index/service";
 
 interface ClickableToken {
   type: string;
@@ -22,16 +25,24 @@ interface ClickableToken {
 }
 
 export class CitekeyClick extends Service {
-  plugin = this.use(ZoteroPlugin);
+  app = this.use(App);
+  settings = this.use(SettingsService);
+  dbWorker = this.use(DatabaseWorker);
+  noteFeatures = this.use(NoteFeatures);
+  noteIndex = this.use(NoteIndex);
+
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
+  }
 
   onload(): void {
     this.patchEditorClick();
   }
 
   async patchEditorClick() {
-    const { workspace } = this.plugin.app,
-      { noteIndex, database, settings, noteFeatures } = this.plugin;
-    await untilWorkspaceReady(this.plugin.app);
+    const { workspace } = this.app;
+    await untilWorkspaceReady(this.app);
     const hasMDView = () => workspace.getLeavesOfType("markdown").length > 0;
     const [task, cancel] = waitUntil({
       register: (cb) =>
@@ -48,6 +59,13 @@ export class CitekeyClick extends Service {
     const mdView = workspace.getLeavesOfType("markdown")[0]!
       .view as MarkdownView;
 
+    // We need to capture `this.noteIndex` etc from the service instance
+    const noteIndex = this.noteIndex;
+    const dbWorker = this.dbWorker;
+    const settings = this.settings;
+    const noteFeatures = this.noteFeatures;
+    const workspace_ = workspace;
+
     this.register(
       around(mdView.editor.constructor.prototype as Editor, {
         getClickableTokenAt: (next) =>
@@ -58,6 +76,7 @@ export class CitekeyClick extends Service {
           },
       }),
     );
+
     this.register(
       around(mdView.editMode.constructor.prototype as MarkdownEditView, {
         triggerClickableToken: (next) =>
@@ -66,13 +85,13 @@ export class CitekeyClick extends Service {
               (async () => {
                 const citekey = token.text;
                 const { [citekey]: itemID } =
-                  await database.api.getItemIDsFromCitekey([token.text]);
+                  await dbWorker.api.getItemIDsFromCitekey([token.text]);
                 if (itemID < 0) {
                   new Notice(`Citekey ${citekey} not found in Zotero`);
                   return;
                 }
-                const [item] = await database.api.getItems([
-                  [itemID, settings.libId],
+                const [item] = await dbWorker.api.getItems([
+                  [itemID, settings.libId ?? 1],
                 ]);
                 if (!item) {
                   new Notice(`Item not found for citekey ${citekey}`);
@@ -81,7 +100,7 @@ export class CitekeyClick extends Service {
                 const notePath = await noteFeatures.createNoteForDocItemFull(
                   item,
                 );
-                await workspace.openLinkText(notePath, "", true, {
+                await workspace_.openLinkText(notePath, "", true, {
                   active: true,
                 });
               })();

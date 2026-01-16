@@ -8,6 +8,7 @@ import {
 import { getAtchIDsOf } from "@/services/note-index/utils";
 import type { TemplateRenderer } from "@/services/template";
 import { getHelperExtraByAtch } from "../update-note";
+import type ZoteroPlugin from "@/zt-main";
 
 export async function insertCitation(
   { alt, item }: { item: RegularItemInfo; alt: boolean },
@@ -20,8 +21,8 @@ export async function insertCitation(
     file: TFile | null;
   },
   template: TemplateRenderer,
+  plugin: ZoteroPlugin
 ) {
-  const { plugin } = template;
   const libId = plugin.settings.libId;
 
   const allAttachments = await plugin.databaseAPI.getAttachments(
@@ -51,12 +52,12 @@ export async function insertCitation(
   const extraByAtch = await getHelperExtraByAtch(
     item,
     { all: allAttachments, selected: allSelectedAtchs, notes },
-    template.plugin,
+    plugin,
   );
 
   const citation = template.renderCitations(
     Object.values(extraByAtch),
-    { plugin: template.plugin },
+    { plugin },
     alt,
   );
   editor.replaceRange(citation, start, end);

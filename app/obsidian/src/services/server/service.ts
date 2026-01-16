@@ -7,11 +7,10 @@ import { createServer } from "http";
 import { queryActions } from "@obzt/protocol";
 import type { INotify } from "@obzt/protocol/dist/bg";
 import { Service, calc, effect } from "@ophidian/core";
-import type { EventRef, ObsidianProtocolData } from "obsidian";
+import type { EventRef, ObsidianProtocolData, Plugin } from "obsidian";
 import { Events, Notice } from "obsidian";
 import log from "@/log";
 import { SettingsService, skip } from "@/settings/base";
-import ZoteroPlugin from "@/zt-main";
 
 /** background actions */
 const bgActions = new Set<string>(["notify"]);
@@ -22,7 +21,12 @@ export class Server extends Service implements Events {
   #events = new Events();
 
   settings = this.use(SettingsService);
-  plugin = this.use(ZoteroPlugin);
+  
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
+  }
+
   server: HTTPServer | null = null;
 
   @calc
@@ -78,7 +82,7 @@ export class Server extends Service implements Events {
       this.trigger(action, params);
     };
     for (const action of obActions) {
-      this.plugin.registerObsidianProtocolHandler(action, handler);
+      this._plugin?.registerObsidianProtocolHandler(action, handler);
     }
   }
 

@@ -6,13 +6,12 @@ import type { ItemKeyGroup } from "@obzt/common";
 import { getItemKeyGroupID } from "@obzt/common";
 import { Service, calc, effect } from "@ophidian/core";
 import type { CachedMetadata, Pos, TAbstractFile, TFile } from "obsidian";
-import { App, Notice } from "obsidian";
+import { App, Notice, Plugin } from "obsidian";
 
 import log from "@/log";
 import { SettingsService, skip } from "@/settings/base";
 import { isMarkdownFile } from "@/utils";
 import { untilMetaReady } from "@/utils/once";
-import ZoteroPlugin from "@/zt-main";
 import {
   getItemKeyFromFrontmatter,
   isAnnotBlock,
@@ -26,9 +25,13 @@ interface BlockInfo {
 }
 
 export default class NoteIndex extends Service {
-  plugin = this.use(ZoteroPlugin);
   settings = this.use(SettingsService);
   app = this.use(App);
+
+  private _plugin?: Plugin;
+  public initializePlugin(plugin: Plugin) {
+    this._plugin = plugin;
+  }
 
   get meta() {
     return this.app.metadataCache;
@@ -42,7 +45,7 @@ export default class NoteIndex extends Service {
     return this.settings.current?.literatureNoteFolder;
   }
   get joinPath() {
-    return getFolderJoinPath(this.literatureNoteFolder);
+    return getFolderJoinPath(this.literatureNoteFolder ?? "");
   }
 
   /** key -> file[] */
@@ -232,11 +235,11 @@ export default class NoteIndex extends Service {
         this.vault.on("delete", this.onFileRemoved, this),
       ].forEach(this.registerEvent.bind(this));
 
-      const [task, cancel] = untilMetaReady(this.plugin.app, {});
+      const [task, cancel] = untilMetaReady(this.app, {});
       cancel && this.register(cancel);
       task.then(() => {
         this.onMetaBuilt();
-        this.plugin.addCommand({
+        this._plugin?.addCommand({
           id: "refresh-note-index",
           name: "Refresh literature notes index",
           callback: () => {
