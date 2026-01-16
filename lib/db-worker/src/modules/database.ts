@@ -152,10 +152,9 @@ export default class Database {
  */
 function initDatabase(path: string, opts: DatabaseOptions) {
   // immutable tag to prevent database locked error
-  // Use file:// URI for absolute paths (assuming unix-like)
-  const uri = `file://${path}?mode=ro&immutable=1`;
-  return new DatabaseConstructor(uri, {
+  return new DatabaseConstructor(`file:${path}?mode=ro&immutable=1`, {
     nativeBinding: opts.nativeBinding,
+    uri: true,
     verbose: process.env.SQL_VERBOSE
       ? (message?: any, ...additionalArgs: any[]) =>
           log.trace(`SQL: ${message}`, ...additionalArgs)
