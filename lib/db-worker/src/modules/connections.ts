@@ -148,7 +148,7 @@ type DatabaseStatus = "READY" | "ERROR" | "NOT_INITIALIZED";
 function openBetterBibtex(paths: DatabasePaths, db: Database): BBTLoadStatus {
   try {
     db.attachDatabase(
-      `file:${paths.bbtMain}?mode=ro&immutable=1`,
+      paths.bbtMain,
       BBT_MAIN_DB_NAME,
     );
   } catch (err) {
@@ -166,7 +166,7 @@ function openBetterBibtex(paths: DatabasePaths, db: Database): BBTLoadStatus {
   if (isAfterMigration) return { bbtMain: true, bbtSearch: null };
   try {
     db.attachDatabase(
-      `file:${paths.bbtSearch}?mode=ro&immutable=1`,
+      paths.bbtSearch,
       BBT_MAIN_DB_NAME,
     );
   } catch (err) {
