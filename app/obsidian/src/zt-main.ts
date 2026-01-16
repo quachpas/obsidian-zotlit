@@ -71,8 +71,9 @@ export default class ZoteroPlugin extends Plugin {
   // annotBlockWorker = this.use(AnnotBlock);
   pdfParser = this.use(PDFParser);
 
-  onload() {
+  async onload() {
     log.info("loading ZotLit");
+    await this.settings.load();
     this.addSettingTab(new ZoteroSettingTab(this));
     this.dbWorker.initializePlugin(this);
     this.noteIndex.initializePlugin(this);

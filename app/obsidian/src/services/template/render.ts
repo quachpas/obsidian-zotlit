@@ -96,9 +96,11 @@ export class Template extends Service {
   }
   onload() {
     patchCompile(this.eta);
-    this.settings.once(async () => {
-      await this.loadTemplates();
-    });
+    this.register(
+      effect(() => {
+        this.loadTemplates();
+      }),
+    );
     this.register(
       effect(
         skip(

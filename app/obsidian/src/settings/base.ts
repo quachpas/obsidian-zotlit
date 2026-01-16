@@ -27,15 +27,6 @@ export function skip<T extends (...args: any[]) => any>(
 export class SettingsService extends _SettingsService<Settings> {
   #plugin?: Plugin;
 
-  constructor() {
-    super();
-    // @ts-ignore
-    if (!this.current) {
-      // @ts-ignore
-      this.current = {} as Settings;
-    }
-  }
-
   initialize(plugin: Plugin) {
     this.#plugin = plugin;
   }
