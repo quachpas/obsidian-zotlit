@@ -76,6 +76,7 @@ export function renderSuggestion(
   if (this.plugin.settings.current?.showCitekeyInSuggester && item.citekey) {
     contentEl.createDiv({ cls: "citekey", text: item.citekey });
   }
+  contentEl.createDiv({ cls: "itemType", text: item.itemType });
   if (isJournalArticleItem(item)) {
     contentEl.append(getArticleMeta(item));
   }
