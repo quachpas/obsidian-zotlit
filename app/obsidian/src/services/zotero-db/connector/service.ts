@@ -284,6 +284,7 @@ export default class Database extends Service {
     }
   }
   async #refreshDbConn() {
+    await this.watcher.prepare();
     await this.#openDbConn();
     this.app.vault.trigger("zotero:db-refresh");
   }
