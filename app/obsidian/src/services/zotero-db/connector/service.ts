@@ -2,14 +2,15 @@
 import type { INotifyRegularItem } from "@obzt/protocol";
 import { Service, calc, effect } from "@ophidian/core";
 import { assertNever } from "assert-never";
+import type { Plugin } from "obsidian";
 import { App, debounce, Notice } from "obsidian";
 import prettyHrtime from "pretty-hrtime";
 import log from "@/log";
 import { Server } from "@/services/server/service";
 import { SettingsService, skip } from "@/settings/base";
 import { CancelledError, TimeoutError, untilDbRefreshed } from "@/utils/once";
+import DatabaseWatcher from "../auto-refresh/service";
 import { DatabaseWorkerPool } from "./worker";
-import { Plugin } from "obsidian";
 
 export const enum DatabaseStatus {
   NotInitialized,
@@ -21,6 +22,7 @@ export default class Database extends Service {
   settings = this.use(SettingsService);
   app = this.use(App);
   server = this.use(Server);
+  watcher = this.use(DatabaseWatcher);
 
   private _plugin?: Plugin;
   public initializePlugin(plugin: Plugin) {
@@ -234,6 +236,7 @@ export default class Database extends Service {
         `Calling init on already initialized db, use refresh instead`,
       );
     }
+    await this.watcher.prepare();
     await this.#openDbConn();
     this.app.vault.trigger("zotero:db-ready");
     await this.#initSearch(true);

@@ -71,12 +71,31 @@ export class SettingsService extends _SettingsService<Settings> {
     return join(this.current?.zoteroDataDir ?? "", "cache");
   }
 
+  @calc get mirrorDir(): string {
+    if (!this.#plugin) return "";
+    // @ts-ignore
+    const vaultPath = this.#plugin.app.vault.adapter.getBasePath();
+    return join(vaultPath, this.#plugin.manifest.dir ?? "", "zotero-db-mirror");
+  }
+
+  @calc get zoteroDbMirrorPath(): string {
+    return join(this.mirrorDir, "zotero.sqlite");
+  }
+
+  @calc get bbtSearchDbMirrorPath(): string {
+    return join(this.mirrorDir, "better-bibtex-search.sqlite");
+  }
+
+  @calc get bbtMainDbMirrorPath(): string {
+    return join(this.mirrorDir, "better-bibtex.sqlite");
+  }
+
   @calc get dbConnParams(): [paths: DatabasePaths, opts: DatabaseOptions] {
     return [
       {
-        zotero: this.zoteroDbPath,
-        bbtSearch: this.bbtSearchDbPath,
-        bbtMain: this.bbtMainDbPath,
+        zotero: this.zoteroDbMirrorPath,
+        bbtSearch: this.bbtSearchDbMirrorPath,
+        bbtMain: this.bbtMainDbMirrorPath,
       },
       { nativeBinding: this.nativeBinding },
     ];
