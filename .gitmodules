@@ -4,7 +4,7 @@
 	branch = master
 [submodule "docs"]
 	path = docs
-	url = https://github.com/aidenlx/obsidian-zotero-docs
+	url = git@github.com:quachpas/obsidian-zotero-docs
 [submodule "lib/eta"]
 	path = lib/eta
 	url = https://github.com/aidenlx/eta
