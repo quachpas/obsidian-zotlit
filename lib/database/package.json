@@ -20,16 +20,12 @@
     "eslint": "~8.36.0",
     "@types/eslint": "~8.4.6",
     "@types/flexsearch": "~0.7.3",
-    "@types/node": "^17.0.10",
-    "@types/better-sqlite3": "~7.6.11"
+    "@types/node": "^17.0.10"
   },
   "dependencies": {
     "@obzt/zotero-type": "workspace:*",
     "@obzt/common": "workspace:*",
     "assert-never": "^1.2.1",
     "@mobily/ts-belt": "^4.0.0-rc.5"
-  },
-  "peerDependencies": {
-    "better-sqlite3": "12.6.0"
   }
 }

@@ -35,7 +35,6 @@
     "eslint": "~8.36.0",
     "@aidenlx/eslint-config": "workspace:*",
     "electron": "18.0.3",
-    "better-sqlite3": "12.6.0",
     "@types/react-dom": "~17.0.11",
     "@types/dompurify": "~2.3.4",
     "@types/react": "~17.0.8",
@@ -56,7 +55,8 @@
     "postcss-prefix-selector": "~1.16.0",
     "autoprefixer": "~10.4.13",
     "tailwindcss": "~3.2.4",
-    "@types/core-js": "~2.5.5"
+    "@types/core-js": "~2.5.5",
+    "@types/flexsearch": "~0.7.3"
   },
   "config": {
     "commitizen": {
@@ -76,8 +76,9 @@
     "@obzt/common": "workspace:*",
     "@obzt/zotero-type": "workspace:*",
     "@obzt/database": "workspace:*",
-    "@obzt/db-worker": "workspace:*",
+    "@obzt/zotero-api": "workspace:*",
     "@aidenlx/workerpool": "workspace:*",
+    "flexsearch": "0.7.31",
     "clsx": "^1.2.1",
     "jotai": "~1.8.4",
     "react": "npm:@preact/compat@~17.1.2",

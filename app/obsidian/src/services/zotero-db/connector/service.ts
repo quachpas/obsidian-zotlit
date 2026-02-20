@@ -4,13 +4,10 @@ import { Service, calc, effect } from "@ophidian/core";
 import { assertNever } from "assert-never";
 import type { Plugin } from "obsidian";
 import { App, debounce, Notice } from "obsidian";
-import prettyHrtime from "pretty-hrtime";
 import log from "@/log";
 import { Server } from "@/services/server/service";
 import { SettingsService, skip } from "@/settings/base";
-import { CancelledError, TimeoutError, untilDbRefreshed } from "@/utils/once";
-import DatabaseWatcher from "../auto-refresh/service";
-import { DatabaseWorkerPool } from "./worker";
+import { ZoteroApiService } from "@/services/zotero-api/service";
 
 export const enum DatabaseStatus {
   NotInitialized,
@@ -22,50 +19,46 @@ export default class Database extends Service {
   settings = this.use(SettingsService);
   app = this.use(App);
   server = this.use(Server);
-  watcher = this.use(DatabaseWatcher);
+  apiService = this.use(ZoteroApiService);
 
   private _plugin?: Plugin;
   public initializePlugin(plugin: Plugin) {
     this._plugin = plugin;
   }
 
-  @calc get zoteroDataDir(): string {
-    return this.settings.current?.zoteroDataDir ?? "";
+  /** Expose the API service as the database API */
+  get api() {
+    return this.apiService;
+  }
+
+  /** Check if the Zotero API is reachable */
+  connect(): Promise<boolean> {
+    return this.apiService.connect();
+  }
+
+  @calc get citationLibrary(): number {
+    return this.settings.current?.citationLibrary ?? 1;
   }
 
   onload() {
-    log.debug("loading DatabaseWorker");
+    log.debug("loading Database (HTTP API)");
     this.settings.once(async () => {
-      const onDatabaseUpdate = debounce(
-        () => this.refresh({ task: "dbConn" }),
-        500,
-        true,
-      );
-      this.registerEvent(
-        this.app.vault.on("zotero:db-updated", () => onDatabaseUpdate()),
-      );
-      const start = process.hrtime();
       try {
         await this.initialize();
-        log.debug(
-          `ZoteroDB Initialization complete. Took ${prettyHrtime(
-            process.hrtime(start),
-          )}`,
-        );
       } catch (e) {
-        log.error("Failed to initialize ZoteroDB", e);
+        log.error("Failed to initialize ZoteroDB via API", e);
         new Notice(
-          "Failed to initialize ZoteroDB. Please check your settings and ensure Zotero is running or the database path is correct.",
+          "Failed to connect to Zotero. Please ensure Zotero is running and 'Allow other applications to communicate with Zotero' is enabled in Zotero's Advanced settings.",
         );
       }
 
-      const requestRefresh = this.genAutoRefresh();
       this.registerEvent(
         this.server.on("bg:notify", async (_, data) => {
           if (data.event !== "regular-item/update") return;
-          requestRefresh(data);
+          await this.#handleItemUpdate(data);
         }),
       );
+
       this._plugin?.addCommand({
         id: "refresh-zotero-data",
         name: "Refresh Zotero data",
@@ -81,28 +74,27 @@ export default class Database extends Service {
         },
       });
     });
+
     this.register(
       effect(
         skip(
           async () => {
-            if (this.status === DatabaseStatus.NotInitialized) {
+            if (this.#status === DatabaseStatus.NotInitialized) {
               await this.initialize();
             } else {
               await this.refresh({ task: "full" });
             }
           },
-          () => this.zoteroDataDir,
+          () => this.settings.zoteroApiPort,
         ),
       ),
     );
+
     this.register(
       effect(
         skip(
           async () => {
-            await this.refresh({
-              task: "searchIndex",
-              force: true,
-            });
+            await this.refresh({ task: "searchIndex", force: true });
             new Notice("Zotero search index updated.");
           },
           () => this.settings.libId,
@@ -111,88 +103,10 @@ export default class Database extends Service {
       ),
     );
   }
-  private genAutoRefresh() {
-    let dbRefreshed = false;
-    let _cancel: (() => void) | null = null;
-    const cancelWaitRefresh = () => {
-      if (!_cancel) return;
-      log.debug("unregistering db refresh watcher");
-      _cancel();
-      _cancel = null;
-    };
-    const tryRefresh = debounce(
-      async () => {
-        cancelWaitRefresh();
-        log.debug("Auto Refreshing Zotero Search Index");
-        if (!dbRefreshed) {
-          dbRefreshed = false;
-          try {
-            log.debug("Db not refreshed, waiting before auto refresh");
-            const [task] = untilDbRefreshed(this.app, { timeout: 10e3 });
-            await task;
-          } catch (error) {
-            if (error instanceof TimeoutError) {
-              log.warn(
-                "no db refreshed event received in 10s, skip refresh search index",
-              );
-              return;
-            } else {
-              console.error(
-                "error while waiting for db refresh during execute",
-                error,
-              );
-              return;
-            }
-          }
-        }
-        await this.refresh({ task: "searchIndex", force: true });
-        log.debug("Auto Refreshing Zotero Search Index Success");
-      },
-      5000,
-      true,
-    );
-    return (data: INotifyRegularItem) => {
-      log.debug(
-        `Request to auto refresh search index: (refreshed ${dbRefreshed})`,
-        data,
-      );
-      tryRefresh();
-      cancelWaitRefresh();
-      if (dbRefreshed) return;
-      log.debug(
-        "watching db refresh while waiting for search index auto refresh",
-      );
-      const [task, cancel] = untilDbRefreshed(this.app, { timeout: null });
-      _cancel = cancel;
-      task
-        .then(() => {
-          log.debug("db refresh while requesting auto refresh search index");
-          dbRefreshed = true;
-          _cancel = null;
-        })
-        .catch((err) => {
-          if (err instanceof CancelledError) return;
-          console.error(
-            "error while waiting for db refresh during request",
-            err,
-          );
-        });
-    };
-  }
 
   async onunload(): Promise<void> {
-    await this.#instance.terminate();
     this.#status = DatabaseStatus.NotInitialized;
     this.#nextRefresh = null;
-  }
-
-  #instance = new DatabaseWorkerPool({
-    minWorkers: 1,
-    maxWorkers: 1,
-  });
-
-  get api() {
-    return this.#instance.proxy;
   }
 
   #status: DatabaseStatus = DatabaseStatus.NotInitialized;
@@ -202,70 +116,67 @@ export default class Database extends Service {
 
   #indexedLibrary: number | null = null;
 
-  async #initSearch(force: boolean) {
+  async #initIndex(force: boolean) {
     const libToIndex = this.settings.libId;
-    if (!force && this.#indexedLibrary === libToIndex) {
-      log.debug(
-        `Skipping search index init, lib ${libToIndex} already indexed`,
-      );
-      return false;
-    }
+    if (!force && this.#indexedLibrary === libToIndex) return false;
     if (libToIndex === undefined) return false;
-    await this.api.initIndex(libToIndex);
+    await this.apiService.loadAllItems(libToIndex);
+    await this.apiService.initIndex(libToIndex);
     this.#indexedLibrary = libToIndex ?? null;
-    log.debug(`Search index init complete for lib ${libToIndex}`);
     return true;
   }
 
-  async #openDbConn() {
-    const [paths, opts] = this.settings.dbConnParams;
-
-    const { main, bbtMain, bbtSearch } = await this.api.openDb(paths, opts);
-    if (!bbtMain || bbtSearch === false) {
-      log.debug("Failed to open Better BibTeX database, skipping...");
-    }
-    if (!main) {
-      throw new Error("Failed to init ZoteroDB");
-    }
-  }
-
-  // #region Initialization, called internally on load
   async initialize() {
     if (this.#status !== DatabaseStatus.NotInitialized) {
-      throw new Error(
-        `Calling init on already initialized db, use refresh instead`,
-      );
+      throw new Error("Calling init on already initialized db, use refresh instead");
     }
-    await this.watcher.prepare();
-    await this.#openDbConn();
+    const reachable = await this.apiService.connect();
+    if (!reachable) {
+      throw new Error("Zotero local API not reachable at port " + this.settings.zoteroApiPort);
+    }
+    await this.#initIndex(true);
     this.app.vault.trigger("zotero:db-ready");
-    await this.#initSearch(true);
-    this.app.metadataCache.trigger("zotero:search-ready");
-    log.info("ZoteroDB Initialization complete.");
-
+    log.info("ZoteroDB (HTTP API) initialization complete.");
     this.#status = DatabaseStatus.Ready;
   }
-  // #endregion
+
+  /** Handle real-time item update notifications from Zotero */
+  #handleItemUpdate = debounce(
+    async (data: INotifyRegularItem) => {
+      log.debug("Handling item update notification", data);
+      const lib = this.settings.libId ?? 1;
+
+      await Promise.all([
+        ...data.add.map(([, , key]) => this.apiService.updateItem(key, lib)),
+        ...data.modify.map(([, , key]) => this.apiService.updateItem(key, lib)),
+        ...data.trash.map(([, , key]) => this.apiService.removeItem(key, lib)),
+      ]);
+
+      this.app.metadataCache.trigger("zotero:search-refresh");
+      log.debug("Item update complete");
+    },
+    1000,
+    true,
+  );
 
   // #region Refresh
   #pendingRefresh: Promise<void> | null = null;
   #nextRefresh: RefreshTask | null = null;
+
   public refresh(param: RefreshTask): Promise<void> {
     if (this.#status === DatabaseStatus.NotInitialized) {
-      return Promise.reject(
-        new Error(`Calling refresh on uninitialized database`),
-      );
+      return Promise.reject(new Error("Calling refresh on uninitialized database"));
     }
     if (this.#status === DatabaseStatus.Ready) {
       this.#status = DatabaseStatus.Pending;
       const pending = (async () => {
-        if (param.task === "dbConn") {
-          await this.#refreshDbConn();
-        } else if (param.task === "searchIndex") {
+        if (param.task === "searchIndex") {
           await this.#refreshSearchIndex(param.force);
         } else if (param.task === "full") {
           await this.#fullRefresh();
-        } else assertNever(param);
+        } else {
+          assertNever(param);
+        }
         this.#status = DatabaseStatus.Ready;
         const nextTask = this.#nextRefresh;
         if (nextTask) {
@@ -283,43 +194,33 @@ export default class Database extends Service {
       assertNever(this.#status);
     }
   }
-  async #refreshDbConn() {
-    await this.watcher.prepare();
-    await this.#openDbConn();
-    this.app.vault.trigger("zotero:db-refresh");
-  }
+
   async #refreshSearchIndex(force = false) {
-    if (await this.#initSearch(force)) {
+    if (await this.#initIndex(force)) {
       this.app.metadataCache.trigger("zotero:search-refresh");
     }
   }
+
   async #fullRefresh() {
-    await this.#refreshDbConn();
     await this.#refreshSearchIndex(true);
     new Notice("ZoteroDB Refresh complete.");
   }
+
   #mergeTask(curr: RefreshTask): RefreshTask {
     if (!this.#nextRefresh) return curr;
     const prev = this.#nextRefresh;
     if (prev.task === "full") return prev;
     if (prev.task === curr.task) {
       if (prev.task === "searchIndex") {
-        return {
-          ...prev,
-          force: prev.force || (curr as RefreshSearchIndexTask).force,
-        };
-      } else {
-        return prev;
+        return { ...prev, force: prev.force || (curr as RefreshSearchIndexTask).force };
       }
+      return prev;
     }
     return { task: "full" };
   }
   // #endregion
 }
 
-interface RefreshDbConnTask {
-  task: "dbConn";
-}
 interface RefreshSearchIndexTask {
   task: "searchIndex";
   force?: boolean;
@@ -328,4 +229,4 @@ interface RefreshFullTask {
   task: "full";
 }
 
-type RefreshTask = RefreshDbConnTask | RefreshSearchIndexTask | RefreshFullTask;
+type RefreshTask = RefreshSearchIndexTask | RefreshFullTask;

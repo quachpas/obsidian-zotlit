@@ -1,95 +1,66 @@
-import { dialog } from "@electron/remote";
-import { Notice } from "obsidian";
 import { useContext } from "react";
-import { useAsyncCallback } from "react-async-hook";
 import { SettingTabCtx } from "../common";
 import Setting, { useSetting } from "../components/Setting";
-import { DatabasePathWithTitle, DatabasePath } from "./DatabasePath";
-import type { DatabaseStatus } from "./useDatabaseStatus";
+import { DatabasePath } from "./DatabasePath";
 import { useDatabaseStatus } from "./useDatabaseStatus";
 
 export default function DatabaseSetting() {
-  const mainDbPath = useDatabasePath("main");
-  const bbtDbPath = useDatabasePath("bbt");
-
-  const [mainDbStatus, refreshMainDb] = useDatabaseStatus("zotero");
-  const [bbtDbStatus, refreshBbtDb] = useDatabaseStatus("bbt");
-
-  const [dataDir, dataDirState, setDataDir] = useApplyDataDir(() => {
-    refreshMainDb();
-    refreshBbtDb();
-  });
+  const [apiStatus, refreshApiStatus] = useDatabaseStatus();
+  const apiUrl = `http://localhost:${useApiPort()}/api`;
 
   return (
     <Setting
-      name="Zotero data directory"
+      name="Zotero HTTP API"
       description={
         <>
-          <DatabasePathWithTitle path={mainDbPath} state={mainDbStatus}>
-            Zotero
-          </DatabasePathWithTitle>
-          <DatabasePathWithTitle path={bbtDbPath} state={bbtDbStatus}>
-            Better BibTeX
-          </DatabasePathWithTitle>
+          <div>Requires Zotero 7+ with &quot;Allow other applications to communicate with Zotero&quot; enabled in Advanced settings.</div>
+          <DatabasePath path={apiUrl} state={apiStatus} />
         </>
       }
     >
-      <DatabasePath path={dataDir} state={dataDirState} />
-      <button onClick={setDataDir}>Select</button>
+      <ApiPortInput onChanged={refreshApiStatus} />
+      <ApiKeyInput />
     </Setting>
   );
 }
 
-function useApplyDataDir(updateStatus: () => void) {
-  const [datadir, setDataDir] = useSetting(
-    (s) => s.zoteroDataDir,
-    (v, prev) => ({ ...prev, zoteroDataDir: v }),
-  );
-  const { app } = useContext(SettingTabCtx);
-  const asyncOnClick = useAsyncCallback(async () => {
-    try {
-      const {
-        filePaths: [newFolder],
-      } = await dialog.showOpenDialog({
-        defaultPath: datadir,
-        properties: ["openDirectory"],
-      });
-      if (newFolder && datadir !== newFolder) {
-        setDataDir(newFolder);
-        await new Promise<void>((resolve, reject) => {
-          function callback() {
-            resolve();
-            app.vault.off("zotero:db-refresh", callback);
-          }
-          app.vault.on("zotero:db-refresh", callback);
-          setTimeout(() => {
-            reject(new DOMException("Timeout after 5s", "TimeoutError"));
-            app.vault.off("zotero:db-refresh", callback);
-          }, 5e3);
-        });
-        updateStatus();
-      }
-    } catch (err) {
-      // show error in obsidian before react catches it
-      console.error("Failed to set data directory", err);
-      new Notice(`Failed to set data directory: ${err}`);
-      throw err;
-    }
-  });
-  let dataDirState: DatabaseStatus;
-  if (asyncOnClick.loading) {
-    dataDirState = "disabled";
-  } else if (asyncOnClick.error) {
-    dataDirState = "failed";
-  } else {
-    dataDirState = "success";
-  }
-  return [datadir, dataDirState, asyncOnClick.execute] as const;
+function useApiPort() {
+  const { settings } = useContext(SettingTabCtx);
+  return settings.zoteroApiPort;
 }
 
-function useDatabasePath(target: "main" | "bbt") {
-  const service = useContext(SettingTabCtx).settings;
-  const value =
-    target === "main" ? service.zoteroDbPath : service.bbtMainDbPath;
-  return value;
+function ApiPortInput({ onChanged }: { onChanged: () => void }) {
+  const [port, setPort] = useSetting(
+    (s) => s.zoteroApiPort,
+    (v, prev) => ({ ...prev, zoteroApiPort: v }),
+  );
+  return (
+    <input
+      type="number"
+      placeholder="23119"
+      value={port}
+      onChange={(e) => {
+        const val = Number.parseInt(e.target.value, 10);
+        if (!Number.isNaN(val) && val > 0) {
+          setPort(val);
+          onChanged();
+        }
+      }}
+    />
+  );
+}
+
+function ApiKeyInput() {
+  const [key, setKey] = useSetting(
+    (s) => s.zoteroApiKey,
+    (v, prev) => ({ ...prev, zoteroApiKey: v }),
+  );
+  return (
+    <input
+      type="text"
+      placeholder="API key (optional)"
+      value={key}
+      onChange={(e) => setKey(e.target.value)}
+    />
+  );
 }

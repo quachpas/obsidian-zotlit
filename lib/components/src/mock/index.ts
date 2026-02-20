@@ -50,8 +50,11 @@ export const annotViewCtx: AnnotViewContextType = {
   onDragStart: (evt, render) => {
     console.log("onDragStart", render());
   },
-  onShowDetails: (itemId) => {
-    console.log("onShowDetails", itemId);
+  onShowDetails: (type, itemKey) => {
+    console.log("onShowDetails", type, itemKey);
+  },
+  onSetFollow: (event) => {
+    console.log("onSetFollow", event);
   },
   annotRenderer: {
     storeSelector: (state) => ({}),
@@ -65,6 +68,7 @@ export const annotViewCtx: AnnotViewContextType = {
 
 export const context: ObsidianContextType = {
   sanitize: (html) => html,
+  renderMarkdown: (content) => content,
 
   setIcon(parent, _iconId) {
     const n = parent.firstChild;

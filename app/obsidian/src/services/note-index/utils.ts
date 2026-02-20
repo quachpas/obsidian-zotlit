@@ -52,22 +52,13 @@ export const getAtchIDsOf = (
       : null;
   const field = cache?.frontmatter?.[ZOTERO_ATCHS_FIELDNAME];
   if (field && Array.isArray(field) && field.length > 0) {
-    const ids: number[] = [];
+    const keys: string[] = [];
     for (const id of field) {
-      if (typeof id === "string") {
-        const numId = Number(id);
-        if (!(numId > 0 && Number.isInteger(numId))) {
-          return null;
-        }
-        ids.push(numId);
-      } else if (typeof id === "number") {
-        if (!(id > 0 && Number.isInteger(id))) {
-          return null;
-        }
-        ids.push(id);
+      if (typeof id === "string" && id.length > 0) {
+        keys.push(id);
       }
     }
-    return ids;
+    return keys.length > 0 ? keys : null;
   }
   return null;
 };

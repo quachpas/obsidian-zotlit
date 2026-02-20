@@ -23,7 +23,7 @@ export interface ContextType<R = {}> {
   ): any;
   registerDbUpdate(callback: () => void): () => void;
   refreshConn(): Promise<void>;
-  onShowDetails(type: "annot" | "doc-item", itemId: number): any;
+  onShowDetails(type: "annot" | "doc-item", itemKey: string): any;
 }
 
 export const Context = createContext({} as ContextType);

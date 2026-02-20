@@ -1,0 +1,27 @@
+{
+  "name": "@obzt/zotero-api",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "~5.1.6",
+    "eslint": "~8.36.0",
+    "@types/eslint": "~8.4.6",
+    "@types/p-limit": "^2.2.0",
+    "@aidenlx/eslint-config": "workspace:*"
+  },
+  "dependencies": {
+    "@obzt/database": "workspace:*",
+    "@obzt/common": "workspace:*",
+    "@obzt/zotero-type": "workspace:*",
+    "p-limit": "^3.1.0"
+  }
+}

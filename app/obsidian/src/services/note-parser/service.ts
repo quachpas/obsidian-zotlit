@@ -207,14 +207,14 @@ export class NoteParser extends Service {
             continue;
           }
           const attachments = await this.dbWorker.api.getAttachments(
-            docItem.itemID,
+            docItem.key,
             libId,
           );
           const annotations = new Map<string, AnnotationInfo>();
           for (const attachment of attachments) {
             if (!attachmentWithAnnotation.has(attachment.key)) continue;
             const annots = await this.dbWorker.api.getAnnotations(
-              attachment.itemID,
+              attachment.key,
               libId,
             );
             for (const annot of annots) {
@@ -234,12 +234,12 @@ export class NoteParser extends Service {
         .flatMap((v) =>
           v
             ? [
-                v.item.itemID,
-                ...[...v.annotations.values()].map((a) => a.itemID),
+                v.item.key,
+                ...[...v.annotations.values()].map((a) => a.key),
               ]
             : [],
         )
-        .map((id) => [id, libId]),
+        .map((key) => [key, libId] as [string, number]),
     );
 
     const parsed = markdown
@@ -301,7 +301,7 @@ export class NoteParser extends Service {
             allAttachments: docItem.attachments,
             annotations: [...docItem.annotations.values()],
             attachment: docItem.attachments.find(
-              (atch) => atch.itemID === annotation.parentItemID,
+              (atch) => atch.key === annotation.parentItem,
             )!,
             docItem: docItem.item,
             notes: [],

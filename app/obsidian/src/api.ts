@@ -1,7 +1,6 @@
 import type {
   AnnotationInfo,
   AttachmentInfo,
-  IDLibID,
   KeyLibID,
   LibraryInfo,
   RegularItemInfo,
@@ -10,42 +9,35 @@ import type {
 export interface PluginAPI {
   version: string;
   /**
-   * Returns the annotations of an attachment.
-   *
-   * @param attachmentId - The ID of the attachment.
-   * @param libraryID - The ID of the library containing the attachment.
-   * @returns The annotations of the attachment.
+   * Returns the annotations of an attachment by its key.
    */
   getAnnotsOfAtch(
-    attachmentId: number,
+    attachmentKey: string,
     libraryID: number,
   ): Promise<AnnotationInfo[]>;
 
   /**
-   * Gets the document items from the given items. If an item is a document, then it is returned in the
-   * array; otherwise, null is returned in its place.
-   *
-   * @param items  The item IDs or keys of the items to get the document items from.
-   * @returns  The document items from the given items.
+   * Gets the document items from the given key+library pairs.
    */
   getDocItems(
-    items: IDLibID[] | KeyLibID[],
+    items: KeyLibID[],
   ): Promise<(RegularItemInfo | null)[]>;
 
   /**
    * Get all annotations with the given keys.
-   *
-   * @param {string[]} keys - The annotation keys to get.
-   * @param {number} libraryID - The library ID.
-   * @returns {Promise<Record<string, AnnotationInfo>>} A promise that resolves
-   *   to a map of key to annotation info.
    */
   getAnnotsFromKeys(
     keys: string[],
     libraryID: number,
   ): Promise<Record<string, AnnotationInfo>>;
 
-  getAttachments(docId: number, libraryID: number): Promise<AttachmentInfo[]>;
-  getItemIDsFromCitekey(citekeys: string[]): Promise<Record<string, number>>;
+  getAttachments(docKey: string, libraryID: number): Promise<AttachmentInfo[]>;
+
+  /** Returns citekey → item key mapping */
+  getItemKeyFromCitekey(
+    citekeys: string[],
+    libraryID: number,
+  ): Promise<Record<string, string>>;
+
   getLibs(): Promise<LibraryInfo[]>;
 }

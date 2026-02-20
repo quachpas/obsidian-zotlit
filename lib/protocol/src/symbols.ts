@@ -1,11 +1,11 @@
-export const mergeAnnotationPattern = /^<!--merge:(\d+)-->/;
+export const mergeAnnotationPattern = /^<!--merge:(\w+)-->/;
 
 export function toMergedAnnotation(
   comment: string | null,
-  mainId: number,
+  mainKey: string,
   isMain: boolean,
 ) {
-  const prefix = `<!--merge:${mainId}-->`;
+  const prefix = `<!--merge:${mainKey}-->`;
   return (
     (!isMain ? prefix : "") +
     (comment?.replace(mergeAnnotationPattern, "") ?? "")

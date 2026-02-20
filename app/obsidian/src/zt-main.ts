@@ -9,9 +9,7 @@ import { Plugin } from "obsidian";
 import log from "@/log";
 import { LogService } from "@/services/log-service";
 import type { PluginAPI } from "./api";
-import checkLib from "./install-guide/index.jsx";
 import NoteFeatures from "./note-feature/service";
-// import { AnnotBlock } from "./services/annot-block/service";
 import { CitekeyClick } from "./services/citekey-click/service";
 import NoteIndex from "./services/note-index/service";
 import { NoteParser } from "./services/note-parser/service";
@@ -21,9 +19,9 @@ import { TemplateRenderer, TemplateEditorHelper } from "./services/template";
 import {
   DatabaseWorker,
   ImgCacheImporter,
-  DatabaseWatcher,
   ZoteroDatabase,
 } from "./services/zotero-db";
+import { ZoteroApiService } from "./services/zotero-api/service";
 import ZoteroSettingTab from "./setting-tab";
 import { useSettings } from "./settings/base";
 import { ProtocolHandler } from "./note-feature/protocol/service";
@@ -38,9 +36,6 @@ export default class ZoteroPlugin extends Plugin {
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
-    if (!checkLib(manifest, app)) {
-      throw new Error("Library check failed");
-    }
   }
 
   settings = useSettings(this);
@@ -63,12 +58,11 @@ export default class ZoteroPlugin extends Plugin {
   }
   dbWorker = this.use(DatabaseWorker);
   imgCacheImporter = this.use(ImgCacheImporter);
-  dbWatcher = this.use(DatabaseWatcher);
   database = this.use(ZoteroDatabase);
+  zoteroApi = this.use(ZoteroApiService);
 
   templateRenderer = this.use(TemplateRenderer);
 
-  // annotBlockWorker = this.use(AnnotBlock);
   pdfParser = this.use(PDFParser);
 
   async onload() {
@@ -88,10 +82,12 @@ export default class ZoteroPlugin extends Plugin {
     globalThis.zoteroAPI = {
       version: this.manifest.version,
       getDocItems: (ids) => {
-        return this.databaseAPI.getItems(ids);
+        return this.databaseAPI.getItems(ids as [string, number][]);
       },
-      getItemIDsFromCitekey: (...args) => {
-        return this.databaseAPI.getItemIDsFromCitekey(...args);
+      getItemKeyFromCitekey: (...args) => {
+        return Promise.resolve(
+          this.databaseAPI.getItemKeyFromCitekey(...args),
+        );
       },
       getAnnotsFromKeys: (...args) => {
         return this.databaseAPI.getAnnotFromKey(...args);
@@ -103,14 +99,12 @@ export default class ZoteroPlugin extends Plugin {
         return this.databaseAPI.getAttachments(...args);
       },
       getLibs: () => {
-        return this.databaseAPI.getLibs();
+        return Promise.resolve(this.databaseAPI.getLibs());
       },
     };
     this.register(() => {
       delete globalThis.zoteroAPI;
     });
-    // globalThis.zt = this;
-    // this.register(() => delete globalThis.zt);
   }
 
   onunload() {

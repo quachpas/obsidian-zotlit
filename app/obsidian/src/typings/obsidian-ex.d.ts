@@ -36,9 +36,6 @@ declare module "obsidian" {
   }
 
   interface PluginManifest {
-    versions?: {
-      "better-sqlite3": string;
-    };
   }
 
   interface Vault {

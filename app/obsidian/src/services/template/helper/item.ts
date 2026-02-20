@@ -18,7 +18,7 @@ export interface RegularItemInfoExtra {
   attachment: AttachmentInfo | null;
   // annotations: AnnotationInfo[];
   allAttachments: AttachmentInfo[];
-  tags: Record<number, TagInfo[]>;
+  tags: Record<string, TagInfo[]>;
   notes: NoteNormailzed[];
 }
 
@@ -89,10 +89,10 @@ export const withDocItemHelper = (
     {
       get(target, p, receiver) {
         if (p === "tags") {
-          if (!extra.tags[data.itemID]) {
-            throw new Error("No tags loaded for item " + data.itemID);
+          if (!extra.tags[data.key]) {
+            throw new Error("No tags loaded for item " + data.key);
           }
-          return extra.tags[data.itemID];
+          return extra.tags[data.key];
         }
         if (extraKeys.has(p as keyof RegularItemInfoExtra)) {
           return extra[p as keyof RegularItemInfoExtra];

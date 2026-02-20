@@ -1,4 +1,4 @@
-import type { IDLibID } from "@obzt/database";
+import type { KeyLibID } from "@obzt/database";
 import { Notice } from "obsidian";
 import log from "@/log";
 import type ZoteroPlugin from "@/zt-main";
@@ -6,7 +6,7 @@ import type { TemplateRenderer } from "@/services/template";
 import type { Context } from "@/services/template/helper";
 
 export async function createNote(
-  ids: IDLibID[],
+  ids: KeyLibID[],
   { currTopic, plugin }: { currTopic: string; plugin: ZoteroPlugin },
 ) {
   const items = (await plugin.databaseAPI.getItems(ids, true)).flatMap(
@@ -21,7 +21,8 @@ export async function createNote(
   const tags = await plugin.databaseAPI.getTags(ids);
 
   for (const [item, index] of items) {
-    const attachments = await plugin.databaseAPI.getAttachments(...ids[index]);
+    const [key, libId] = ids[index];
+    const attachments = await plugin.databaseAPI.getAttachments(key, libId);
     const extra = {
       docItem: item,
       tags,
@@ -29,7 +30,7 @@ export async function createNote(
       allAttachments: attachments,
       annotations: [],
       notes: await plugin.databaseAPI
-        .getNotes(item.itemID, item.libraryID)
+        .getNotes(item.key, item.libraryID)
         .then((notes) => plugin.noteParser.normalizeNotes(notes)),
     };
     await plugin.noteFeatures.createNoteForDocItem(item, {

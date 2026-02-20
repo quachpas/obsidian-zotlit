@@ -26,7 +26,7 @@ export async function importNote(plugin: ZoteroPlugin): Promise<boolean> {
     value: { item },
   } = result;
   const notes = await plugin.databaseAPI.getNotes(
-    item.itemID,
+    item.key,
     plugin.settings.libId ?? 1,
   );
   if (notes.length === 0) {

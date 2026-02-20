@@ -264,8 +264,7 @@ export class Template extends Service {
     }
     const zoteroKey = getItemKeyGroupID(data, true),
       zoteroAtchIds = data.attachment
-        ? // Obsidian field editor don't support array of numbers
-          [data.attachment.itemID.toString()]
+        ? [data.attachment.key]
         : undefined;
 
     const {

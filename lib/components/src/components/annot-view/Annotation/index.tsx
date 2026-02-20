@@ -50,7 +50,7 @@ export default function Annotation({
       onMoreOptions(evt, annotation),
     ),
     handleShowDetails = useMemoizedFn(() =>
-      onShowDetails("annot", annotation.itemID),
+      onShowDetails("annot", annotation.key),
     );
 
   return (
@@ -60,7 +60,7 @@ export default function Annotation({
         "bg-primary shadow-border col-span-1 flex flex-col divide-y overflow-auto rounded-sm transition-colors",
         className,
       )}
-      data-id={annotation.itemID}
+      data-id={annotation.key}
       {...props}
     >
       <Header

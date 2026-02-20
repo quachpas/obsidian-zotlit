@@ -302,10 +302,6 @@
       "projectFolder": "lib/components"
     },
     {
-      "packageName": "@obzt/db-worker",
-      "projectFolder": "lib/db-worker"
-    },
-    {
       "packageName": "@obzt/database",
       "projectFolder": "lib/database"
     },
@@ -344,6 +340,10 @@
     {
       "packageName": "@aidenlx/eslint-config",
       "projectFolder": "common/config/eslint"
+    },
+    {
+      "packageName": "@obzt/zotero-api",
+      "projectFolder": "lib/zotero-api"
     }
   ]
 }

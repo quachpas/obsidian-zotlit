@@ -110,15 +110,15 @@ export const withAnnotHelper = (
     {
       get(target, p, receiver) {
         if (p === "tags") {
-          if (!extra.tags[data.itemID]) {
-            console.error(extra, data.itemID);
-            throw new Error("No tags loaded for item " + data.itemID);
+          if (!extra.tags[data.key]) {
+            console.error(extra, data.key);
+            throw new Error("No tags loaded for item " + data.key);
           }
-          return extra.tags[data.itemID];
+          return extra.tags[data.key];
         }
         if (p === "docItem") {
           if (target.docItem === "not-loaded") {
-            throw new Error("Doc Item not loaded for item " + data.itemID);
+            throw new Error("Doc Item not loaded for item " + data.key);
           }
           return target.docItem;
         }
@@ -150,5 +150,5 @@ export const withAnnotHelper = (
 
 export type AnnotationExtra = {
   attachment: AttachmentInfo | null;
-  tags: Record<number, TagInfo[]>;
+  tags: Record<string, TagInfo[]>;
 };

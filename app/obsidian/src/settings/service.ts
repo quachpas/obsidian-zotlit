@@ -3,7 +3,6 @@ import { defaultSettingsSuggester } from "@/note-feature/citation-suggest/settin
 import { defaultSettingsNoteIndex } from "@/services/note-index/settings";
 import { defaultSettingsServer } from "@/services/server/settings";
 import { defaultSettingsTemplate } from "@/services/template/settings";
-import { defaultSettingsWatcher } from "@/services/zotero-db/auto-refresh/settings";
 import { getDefaultSettingsDatabase } from "@/services/zotero-db/connector/settings";
 import { defaultSettingsImgImporter } from "@/services/zotero-db/img-import/settings";
 
@@ -13,7 +12,6 @@ export const getDefaultSettings = () => ({
   ...defaultSettingsNoteIndex,
   ...defaultSettingsServer,
   ...defaultSettingsTemplate,
-  ...defaultSettingsWatcher,
   ...getDefaultSettingsDatabase(),
   ...defaultSettingsImgImporter,
 });

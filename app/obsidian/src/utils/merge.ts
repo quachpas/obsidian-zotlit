@@ -10,10 +10,10 @@ export function mergeAnnots(annotations: AnnotationInfo[]): AnnotationInfo[][] {
     (annot) => annot.comment?.match(mergeAnnotationPattern)?.[1] ?? -1,
   );
   const notMerged = groups[-1] ?? [];
-  const output = new Map(notMerged.map((annot) => [annot.itemID, [annot]]));
+  const output = new Map(notMerged.map((annot) => [annot.key, [annot]]));
   delete groups[-1];
   for (const [mergeTargetId, annots] of Object.entries(groups)) {
-    const targetArray = output.get(+mergeTargetId);
+    const targetArray = output.get(mergeTargetId);
     annots.forEach((a) => {
       a.comment &&= a.comment.replace(mergeAnnotationPattern, "") ?? null;
     });
@@ -25,7 +25,7 @@ export function mergeAnnots(annotations: AnnotationInfo[]): AnnotationInfo[][] {
       );
     } else {
       annots.forEach((a) => {
-        output.set(a.itemID, [a]);
+        output.set(a.key, [a]);
       });
     }
   }
@@ -63,25 +63,25 @@ export function mergedToAnnots(mergedAnnots: AnnotationInfo[][]) {
 
 export function mergeTags(
   mergedAnnots: AnnotationInfo[][],
-  tags: Record<number, TagInfo[]>,
+  tags: Record<string, TagInfo[]>,
 ) {
   const mergedTags = mergedAnnots.map(([target, ...annots]) => {
     if (annots.length === 0)
-      return [target.itemID, tags[target.itemID]] as const;
-    const mergedTags = new Map(tags[target.itemID].map((t) => [t.tagID, t]));
+      return [target.key, tags[target.key]] as const;
+    const mergedTags = new Map((tags[target.key] ?? []).map((t) => [t.tagID, t]));
     annots.forEach((a) => {
-      tags[a.itemID].forEach((t) => {
+      (tags[a.key] ?? []).forEach((t) => {
         mergedTags.set(t.tagID, t);
       });
     });
-    return [target.itemID, Array.from(mergedTags.values())] as const;
+    return [target.key, Array.from(mergedTags.values())] as const;
   });
   return Object.fromEntries(mergedTags);
 }
 
 export function merge(
   annotations: AnnotationInfo[],
-  tags: Record<number, TagInfo[]>,
+  tags: Record<string, TagInfo[]>,
 ) {
   const mergedAnnots = mergeAnnots(annotations);
   return {

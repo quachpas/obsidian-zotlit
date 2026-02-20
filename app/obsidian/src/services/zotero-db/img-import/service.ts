@@ -24,7 +24,7 @@ export class ImgCacheImporter extends Service {
   private queue = new Map<string, () => Promise<boolean>>();
 
   getCachePath(annot: AnnotationInfo) {
-    return getCacheImagePath(annot, this.settings.current?.zoteroDataDir ?? "");
+    return getCacheImagePath(annot, this.settings.current?.zoteroCacheDir ?? "");
   }
 
   @calc

@@ -1,5 +1,5 @@
 import { createStore } from "@obzt/components";
-import type { AnnotationInfo, IDLibID } from "@obzt/database";
+import type { AnnotationInfo } from "@obzt/database";
 import type { TFile, ViewStateResult, WorkspaceLeaf } from "obsidian";
 import { FileView } from "obsidian";
 import type { TplType } from "@/services/template/eta/preset";
@@ -10,9 +10,9 @@ import type ZoteroPlugin from "@/zt-main";
 
 export type PreviewData = HelperExtra & { annot?: AnnotationInfo };
 export interface TemplatePreviewStateData {
-  docItem: number;
-  attachment?: number;
-  annot?: number;
+  docItem: string;
+  attachment?: string;
+  annot?: string;
 }
 
 export const toCtx = (plugin: ZoteroPlugin) => ({ plugin, sourcePath: "" });
@@ -52,9 +52,9 @@ export function create() {
     ): Promise<boolean> {
       const curr = get().preview;
       if (
-        curr?.docItem.itemID === stateData?.docItem &&
-        curr?.attachment?.itemID === stateData?.attachment &&
-        curr?.annot?.itemID === stateData?.annot
+        curr?.docItem.key === stateData?.docItem &&
+        curr?.attachment?.key === stateData?.attachment &&
+        curr?.annot?.key === stateData?.annot
       ) {
         return false;
       }
@@ -69,7 +69,7 @@ export function create() {
       ]);
       if (!docItem) {
         console.error(
-          "TemplatePreview: no docItem found for id " + stateData.docItem,
+          "TemplatePreview: no docItem found for key " + stateData.docItem,
         );
         return false;
       }
@@ -79,34 +79,34 @@ export function create() {
       );
 
       const attachment =
-        allAttachments.find((i) => i.itemID === stateData.attachment) ?? null;
+        allAttachments.find((i) => i.key === stateData.attachment) ?? null;
 
       if (stateData.attachment && !attachment) {
         console.error(
-          "TemplatePreview: no attachment found for id " + stateData.attachment,
+          "TemplatePreview: no attachment found for key " + stateData.attachment,
         );
       }
 
       const annotations: AnnotationInfo[] = attachment
-        ? await plugin.databaseAPI.getAnnotations(attachment.itemID, libId)
+        ? await plugin.databaseAPI.getAnnotations(attachment.key, libId)
         : [];
 
-      const annot = annotations.find((i) => i.itemID === stateData.annot);
+      const annot = annotations.find((i) => i.key === stateData.annot);
       if (stateData.annot && !annot) {
         console.error(
-          "TemplatePreview: no annotation found for id " + stateData.annot,
+          "TemplatePreview: no annotation found for key " + stateData.annot,
         );
       }
 
       const tags = await plugin.databaseAPI.getTags([
         [stateData.docItem, libId],
-        ...annotations.map((i): IDLibID => [i.itemID, libId]),
+        ...annotations.map((i) => [i.key, libId] as [string, number]),
       ]);
 
       let notes: HelperExtra["notes"];
       try {
         notes = await plugin.databaseAPI
-          .getNotes(docItem.itemID, libId)
+          .getNotes(docItem.key, libId)
           .then((notes) => plugin.noteParser.normalizeNotes(notes));
       } catch (error) {
         console.error(error);
@@ -120,7 +120,7 @@ export function create() {
           annotations,
           attachment,
           tags,
-          annot: annotations.find((i) => i.itemID === stateData.annot),
+          annot: annotations.find((i) => i.key === stateData.annot),
           notes,
         },
       }));
@@ -196,9 +196,9 @@ export abstract class TemplatePreviewBase extends FileView {
       const { docItem, attachment, annot } = preview;
       state = {
         preview: {
-          docItem: docItem.itemID,
-          attachment: attachment?.itemID,
-          annot: annot?.itemID,
+          docItem: docItem.key,
+          attachment: attachment?.key,
+          annot: annot?.key,
         },
       };
     }

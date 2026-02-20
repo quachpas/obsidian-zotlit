@@ -6,8 +6,8 @@ import { Context } from "../context";
 
 export interface AttachmentSelectorProps {
   attachments: AttachmentInfo[] | null;
-  value: number | null;
-  onChange: (value: number) => void;
+  value: string | null;
+  onChange: (value: string) => void;
 }
 
 const useAttachmentSelect = () =>
@@ -16,7 +16,7 @@ const useAttachmentSelect = () =>
     (s): AttachmentSelectorProps => ({
       attachments: s.allAttachments,
       onChange: s.setActiveAtch,
-      value: s.attachmentID,
+      value: s.attachmentKey,
     }),
     shallow,
   );
@@ -35,12 +35,12 @@ export default function AttachmentSelector() {
   return (
     <select
       className="atch-select"
-      onChange={(evt) => onChange(parseInt(evt.target.value, 10))}
+      onChange={(evt) => onChange(evt.target.value)}
       value={value ?? undefined}
     >
-      {attachments.map(({ itemID, path, annotCount }) => {
+      {attachments.map(({ key, path, annotCount }) => {
         return (
-          <option key={itemID} value={itemID}>
+          <option key={key} value={key}>
             ({annotCount}) {path?.replace(/^storage:/, "")}
           </option>
         );

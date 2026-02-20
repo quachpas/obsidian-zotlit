@@ -3,12 +3,9 @@ import type { SimpleDocumentSearchResultSetUnit } from "@obzt/database/api";
 import { Service } from "@ophidian/core";
 import log from "@/log";
 import { SettingsService } from "@/settings/base";
-import DatabaseWatcher from "./auto-refresh/service";
 import DatabaseWorker, { DatabaseStatus } from "./connector/service";
 
 export class ZoteroDatabase extends Service {
-  // async onload() {}
-
   onunload(): void {
     log.info("ZoteroDB unloaded");
   }
@@ -20,7 +17,6 @@ export class ZoteroDatabase extends Service {
   settings = this.use(SettingsService);
   #worker = this.use(DatabaseWorker);
 
-  watcher = this.use(DatabaseWatcher);
   get api() {
     return this.#worker.api;
   }
@@ -39,7 +35,7 @@ export class ZoteroDatabase extends Service {
     if (result.length === 0) return [];
     const sorted = sort(result);
     if (sorted.length === 0) return [];
-    const items = await this.api.getItems(sorted.map((i) => [i.id, lib]));
+    const items = await this.api.getItems(sorted.map((i) => [i.id as string, lib]));
 
     return items.map((item, index) => {
       const { id, fields, score } = sorted[index];
@@ -47,6 +43,7 @@ export class ZoteroDatabase extends Service {
       return { item, score, fields: [...fields] };
     });
   }
+
   async getItemsOf(
     limit = 50,
     lib = this.defaultLibId,
@@ -59,7 +56,7 @@ export class ZoteroDatabase extends Service {
 }
 
 interface SearchResultRaw {
-  id: number;
+  id: string;
   score: number;
   fields: Set<string>;
 }
@@ -96,6 +93,7 @@ function sort(resultSet: SimpleDocumentSearchResultSetUnit[]) {
       normalizedField = "creators";
     }
     result.forEach((id, index) => {
+      const key = String(id);
       let score = size - index;
       switch (normalizedField) {
         case "title":
@@ -123,21 +121,20 @@ function sort(resultSet: SimpleDocumentSearchResultSetUnit[]) {
           score *= 1;
           break;
         default:
-          // Ignore unknown fields instead of throwing error to be more robust
           log.warn("Unknown field in search results: " + field);
           score *= 0.5;
           break;
       }
 
-      if (!idScore.has(+id)) {
-        idScore.set(+id, { id: +id, score, fields: new Set([normalizedField]) });
+      if (!idScore.has(key)) {
+        idScore.set(key, { id: key, score, fields: new Set([normalizedField]) });
       } else {
-        const scoreObj = idScore.get(+id)!;
+        const scoreObj = idScore.get(key)!;
         scoreObj.fields.add(normalizedField);
         scoreObj.score += score;
       }
     });
     return idScore;
-  }, new Map<number, SearchResultRaw>());
+  }, new Map<string, SearchResultRaw>());
   return Array.from(items.values()).sort((a, b) => b.score - a.score);
 }

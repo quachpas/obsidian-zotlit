@@ -5,7 +5,6 @@ import { pipe } from "@mobily/ts-belt/pipe";
 import type {
   AnnotationInfo,
   AttachmentInfo,
-  IDLibID,
   RegularItemInfoBase,
 } from "@obzt/database";
 import type { TFile } from "obsidian";
@@ -42,7 +41,7 @@ export async function updateNote(
 
   const libId = plugin.settings.libId;
   const allAttachments = await plugin.databaseAPI.getAttachments(
-    item.itemID,
+    item.key,
     libId,
   );
 
@@ -50,7 +49,7 @@ export async function updateNote(
     notePaths.flatMap((p) => getAtchIDsOf(p, plugin.app.metadataCache)),
   );
   const allSelectedAtchs = allAttachments.filter((a) =>
-    allSelectedAtchIDs.has(a.itemID),
+    allSelectedAtchIDs.has(a.key),
   );
   // if there is no selected attachment in the note, prompt the user to choose one
   let fallbackAtch: AttachmentInfo | undefined | null;
@@ -63,7 +62,7 @@ export async function updateNote(
   }
 
   const notes = await plugin.databaseAPI
-    .getNotes(item.itemID, libId)
+    .getNotes(item.key, libId)
     .then((notes) => plugin.noteParser.normalizeNotes(notes));
 
   const extraByAtch = await getHelperExtraByAtch(
@@ -88,7 +87,7 @@ export async function updateNote(
         fallbackAtch = await chooseAnnotAtch(allSelectedAtchs, plugin.app);
       }
       if (fallbackAtch) {
-        attachmentIDs = [fallbackAtch.itemID];
+        attachmentIDs = [fallbackAtch.key];
       } else {
         // if the user cancels the prompt (fallbackAtch===null), skip the annotations update
         attachmentIDs = [];
@@ -202,13 +201,13 @@ export async function getHelperExtraByAtch(
     notes: NoteNormailzed[];
   },
   plugin: ZoteroPlugin,
-): Promise<Record<number, HelperExtra>> {
+): Promise<Record<string, HelperExtra>> {
   const libId = plugin.settings.libId;
-  const tagsRecord = await plugin.databaseAPI.getTags([[item.itemID, libId]]);
+  const tagsRecord = await plugin.databaseAPI.getTags([[item.key, libId]]);
 
   if (attachments.length === 0) {
     return {
-      [-1]: {
+      "": {
         docItem: item,
         attachment: null,
         tags: tagsRecord,
@@ -218,18 +217,18 @@ export async function getHelperExtraByAtch(
       },
     };
   }
-  const extras: Record<number, HelperExtra> = {};
+  const extras: Record<string, HelperExtra> = {};
   for (const attachment of attachments) {
     const annotations: AnnotationInfo[] = attachment
-      ? await plugin.databaseAPI.getAnnotations(attachment.itemID, libId)
+      ? await plugin.databaseAPI.getAnnotations(attachment.key, libId)
       : [];
-    extras[attachment.itemID] = {
+    extras[attachment.key] = {
       docItem: item,
       attachment,
       tags: {
         ...tagsRecord,
         ...(await plugin.databaseAPI.getTags(
-          annotations.map((i): IDLibID => [i.itemID, libId]),
+          annotations.map((i) => [i.key, libId] as [string, number]),
         )),
       },
       allAttachments,

@@ -1,1 +1,1 @@
-export type { DbWorkerAPIWorkpool as DbWorkerAPI } from "@obzt/database/api";
+export type { ZoteroApiService as DbWorkerAPI } from "@/services/zotero-api/service";

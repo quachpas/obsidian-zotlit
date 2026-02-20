@@ -5,7 +5,7 @@ import type {
   AnnotationItem,
   NoteItem,
 } from "@obzt/zotero-type";
-import { nonRegularItemTypes, CreatorFieldMode } from "@obzt/zotero-type";
+import { nonRegularItemTypes, CreatorFieldMode, AttachmentType } from "@obzt/zotero-type";
 
 export type Item = {
   itemID: number;
@@ -13,6 +13,28 @@ export type Item = {
   key: string;
   groupID: number | null;
   itemType: string;
+};
+
+export type TagInfo = {
+  tagID: number;
+  type: number;
+  name: string;
+};
+
+export type LibraryInfo = {
+  libraryID: number;
+  groupID: number | null;
+  name: string;
+};
+
+export type AttachmentInfo = {
+  itemID: number;
+  key: string;
+  path: string | null;
+  contentType: string | null;
+  linkMode: AttachmentType | null;
+  charsets: string | null;
+  annotCount: number;
 };
 export type ItemField = {
   itemID: number;

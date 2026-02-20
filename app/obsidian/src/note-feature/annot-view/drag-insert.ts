@@ -68,7 +68,7 @@ export const getAnnotRenderer = (
       !allAttachments ||
       !attachment ||
       !doc ||
-      !tags[annotation.itemID] ||
+      !tags[annotation.key] ||
       !annotations
     )
       return null;

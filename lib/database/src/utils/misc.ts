@@ -29,24 +29,21 @@ interface Storage {
 }
 
 const toLocalStorageKey = (docItem: RegularItemInfoBase) =>
-  `obzt-active-atch-${docItem.itemID}-${docItem.libraryID}`;
+  `obzt-active-atch-${docItem.key}-${docItem.libraryID}`;
 
 export const getCachedActiveAtch = (
   storage: Storage,
   docItem: RegularItemInfoBase,
-) => {
+): string | null => {
   const raw = storage.getItem(toLocalStorageKey(docItem));
-  if (!raw) return null;
-  const val = parseInt(raw, 10);
-  if (val > 0) return val;
-  return null;
+  return raw || null;
 };
 
 export const cacheActiveAtch = (
   storage: Storage,
   docItem: RegularItemInfoBase,
-  atchID: number,
-) => storage.setItem(toLocalStorageKey(docItem), atchID.toString());
+  atchKey: string,
+) => storage.setItem(toLocalStorageKey(docItem), atchKey);
 
 export const parseSortIndex = (sortIndex: string) =>
   sortIndex?.split("|").map((s) => parseInt(s, 10)) ?? [];

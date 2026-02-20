@@ -88,7 +88,7 @@ export class TopicImport extends Service {
         });
         cancel && this.register(cancel);
         await task;
-        await createNote(data.add, {
+        await createNote(data.add.map(([, lib, key]) => [key, lib] as [string, number]), {
           currTopic: this.topic,
           plugin: plugin as any, // TODO: Fix plugin type
         });

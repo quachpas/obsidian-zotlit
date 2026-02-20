@@ -26,8 +26,8 @@ import "./style.less";
 export const annotViewType = "zotero-annotation-view";
 
 interface State {
-  itemId: number;
-  attachmentId?: number;
+  itemKey: string;
+  attachmentKey?: string;
   follow: AnnotViewStore["follow"];
 }
 
@@ -49,8 +49,8 @@ export class AnnotationView extends DerivedFileView {
       this.setStatePrev((state) => ({
         ...state,
         follow: "ob-note",
-        itemId: item.itemID,
-        attachmentId: attachments?.[0] ?? -1,
+        itemKey: item.key,
+        attachmentKey: attachments?.[0],
       }));
       return true;
     })().then((result) => {
@@ -58,7 +58,7 @@ export class AnnotationView extends DerivedFileView {
         this.setStatePrev((state) => ({
           ...state,
           follow: "ob-note",
-          itemId: -1,
+          itemKey: "",
         }));
     });
   }
@@ -67,7 +67,7 @@ export class AnnotationView extends DerivedFileView {
     return annotViewType;
   }
 
-  #zoteroActiveItem: number | null = null;
+  #zoteroActiveItem: string | null = null;
   onload(): void {
     super.onload();
     this.contentEl.addClass("obzt");
@@ -79,11 +79,11 @@ export class AnnotationView extends DerivedFileView {
         nextReader = data;
       } else {
         locked = true;
-        const { itemId, attachmentId } = data;
+        const { itemKey, attachmentKey } = data;
         this.setStatePrev((state) => ({
           ...state,
-          itemId,
-          attachmentId,
+          itemKey,
+          attachmentKey,
         })).then(() => {
           locked = false;
           if (nextReader === null) return;
@@ -96,11 +96,11 @@ export class AnnotationView extends DerivedFileView {
     this.registerEvent(
       this.plugin.server.on("bg:notify", (_, data) => {
         if (data.event !== "reader/active") return;
-        this.#zoteroActiveItem = data.itemId;
+        this.#zoteroActiveItem = data.itemKey;
         if (
           this.follow !== "zt-reader" ||
-          data.itemId < 0 ||
-          data.attachmentId < 0
+          !data.itemKey ||
+          !data.attachmentKey
         )
           return;
         updateZtReader(data);
@@ -130,8 +130,8 @@ export class AnnotationView extends DerivedFileView {
     const data = super.getState();
     const curr = this.store.getState();
     const output: State = {
-      itemId: curr.doc?.docItem.itemID ?? -1,
-      attachmentId: curr.attachment?.itemID ?? -1,
+      itemKey: curr.doc?.docItem.key ?? "",
+      attachmentKey: curr.attachment?.key,
       follow: curr.follow,
     };
     return {
@@ -141,9 +141,9 @@ export class AnnotationView extends DerivedFileView {
   }
   async setState(state: State, _result?: ViewStateResult): Promise<void> {
     await super.setState(state, (_result ?? {}) as any);
-    const { itemId = -1, attachmentId = -1, follow = "zt-reader" } = state;
+    const { itemKey = "", attachmentKey, follow = "zt-reader" } = state;
     this.store.getState().setFollow(follow);
-    await this.store.getState().loadDocItem(itemId, attachmentId, this.lib);
+    await this.store.getState().loadDocItem(itemKey, attachmentKey ?? null, this.lib);
   }
   async setStatePrev(update: (state: State) => State) {
     await this.setState(update(this.getState()));
@@ -151,12 +151,12 @@ export class AnnotationView extends DerivedFileView {
 
   onSetFollowZt = async () => {
     this.setStatePrev((state) => ({ ...state, follow: "zt-reader" }));
-    await this.setStatePrev(({ attachmentId, ...state }) => ({
+    await this.setStatePrev(({ attachmentKey, ...state }) => ({
       ...state,
       follow: "zt-reader",
       ...(this.#zoteroActiveItem === null
-        ? { attachmentId }
-        : { itemId: this.#zoteroActiveItem }),
+        ? { attachmentKey }
+        : { itemKey: this.#zoteroActiveItem }),
     }));
   };
   onSetFollowOb = () => {
@@ -167,17 +167,17 @@ export class AnnotationView extends DerivedFileView {
     const { plugin } = this;
     const literature = await chooseLiterature(plugin);
     if (!literature) return;
-    const { itemID } = literature.value.item;
+    const { key } = literature.value.item;
 
     const lib = plugin.settings.libId;
-    const attachments = await plugin.databaseAPI.getAttachments(itemID, lib);
+    const attachments = await plugin.databaseAPI.getAttachments(key, lib);
 
     const atch = await chooseAnnotAtch(attachments, this.app);
-    await this.setStatePrev(({ attachmentId, ...state }) => ({
+    await this.setStatePrev(({ attachmentKey: _, ...state }) => ({
       ...state,
       follow: null,
-      itemId: itemID,
-      attachmentId: atch?.itemID,
+      itemKey: key,
+      attachmentKey: atch?.key,
     }));
   };
   getContext(): AnnotViewContextType<AnnotRendererProps> {
@@ -191,32 +191,32 @@ export class AnnotationView extends DerivedFileView {
         return () => app.vault.off("zotero:db-refresh", callback);
       },
       refreshConn: async () => {
-        await plugin.dbWorker.refresh({ task: "dbConn" });
+        await plugin.dbWorker.refresh({ task: "full" });
       },
       getImgSrc: (annotation) => {
         const path = getCacheImagePath(
           annotation,
-          plugin.settings.current?.zoteroDataDir ?? "",
+          plugin.settings.zoteroCacheDirPath,
         );
         return getFSResourcePath(path);
       },
-      onShowDetails: async (type, itemId) => {
+      onShowDetails: async (type, itemKey) => {
         const state = store.getState(),
-          attachment = state.attachmentID ?? undefined;
+          attachment = state.attachmentKey ?? undefined;
         if (type === "doc-item") {
           await openTemplatePreview(
             "note",
-            { docItem: itemId, attachment },
+            { docItem: itemKey, attachment },
             plugin,
           );
         } else {
-          const docItem = state.doc?.docItem.itemID;
+          const docItem = state.doc?.docItem.key;
           if (!docItem) {
             throw new Error("Missing doc item when showing annotation details");
           }
           await openTemplatePreview(
             "annotation",
-            { docItem, attachment, annot: itemId },
+            { docItem, attachment, annot: itemKey },
             plugin,
           );
         }
@@ -298,8 +298,8 @@ export class AnnotationView extends DerivedFileView {
         if (data.event !== "reader/annot-select") return;
         const update = data.updates.filter(([, selected]) => selected).pop();
         if (!update) return;
-        const [annotId] = update;
-        this.highlightAnnot(annotId);
+        const [, , annotKey] = update;
+        this.highlightAnnot(annotKey);
       }),
     );
   }
@@ -308,9 +308,9 @@ export class AnnotationView extends DerivedFileView {
     await super.onClose();
   }
 
-  async highlightAnnot(annotId: number) {
+  async highlightAnnot(annotKey: string) {
     const element = this.contentEl.querySelector(
-      `.annot-preview[data-id="${annotId}"]`,
+      `.annot-preview[data-id="${annotKey}"]`,
     );
     if (!(element instanceof HTMLElement)) return;
     element.addClass("select-flashing");

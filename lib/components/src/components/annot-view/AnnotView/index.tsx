@@ -52,7 +52,7 @@ function AnnotsViewMain({ docItem }: { docItem: RegularItemInfoBase }) {
             <DetailsButton
               className="nav-action-button"
               onClick={useMemoizedFn(() =>
-                onShowDetails("doc-item", docItem.itemID),
+                onShowDetails("doc-item", docItem.key),
               )}
             />
             <CollapseButton
@@ -96,7 +96,7 @@ const useAnnotList = (): Pick<
       if (!s.doc || !s.annotations || !s.attachment) return null;
       return {
         annotations: s.annotations,
-        getTags: (itemId: number) => s.tags[itemId] ?? [],
+        getTags: (itemKey: string) => s.tags[itemKey] ?? [],
       };
     },
     shallow,

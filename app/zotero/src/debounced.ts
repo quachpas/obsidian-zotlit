@@ -31,28 +31,31 @@ export abstract class Debouncer<Data, ID> {
 
 export abstract class ItemUpdateDebouncer {
   queue = {
-    add: new Map<number, number>(),
-    modify: new Map<number, number>(),
-    trash: new Map<number, number>(),
+    add: new Map<number, [lib: number, key: string]>(),
+    modify: new Map<number, [lib: number, key: string]>(),
+    trash: new Map<number, [lib: number, key: string]>(),
   };
 
   request(
     id: number,
     lib: number,
+    key: string,
     type: keyof ItemUpdateDebouncer["queue"],
   ): void {
-    this.queue[type].set(id, lib);
+    this.queue[type].set(id, [lib, key]);
     this.#request();
   }
 
   abstract notify(data: {
-    [K in keyof ItemUpdateDebouncer["queue"]]: [number, number][];
+    [K in keyof ItemUpdateDebouncer["queue"]]: [number, number, string][];
   }): Promise<void> | void;
 
   #request = debounce(async () => {
     await this.notify(
       map(this.queue, (map) => {
-        const data = Array.from(map.entries());
+        const data = Array.from(map.entries()).map(
+          ([id, [lib, key]]) => [id, lib, key] as [number, number, string],
+        );
         map.clear();
         return data;
       }),

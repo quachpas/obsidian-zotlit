@@ -269,7 +269,7 @@ class NoteFeatures extends Service {
   async createNoteForDocItemFull(item: RegularItemInfoBase): Promise<string> {
     const libId = this.settings.libId ?? 1;
     const allAttachments = await this.dbWorker.api.getAttachments(
-      item.itemID,
+      item.key,
       libId,
     );
     const selected = await chooseAnnotAtch(allAttachments, this.app);
@@ -277,7 +277,7 @@ class NoteFeatures extends Service {
       cacheAttachmentSelect(selected, item);
     }
     const notes = await this.dbWorker.api
-      .getNotes(item.itemID, libId ?? 1)
+      .getNotes(item.key, libId ?? 1)
       .then((notes) => this.noteParser.normalizeNotes(notes));
 
     const extraByAtch = await getHelperExtraByAtch(

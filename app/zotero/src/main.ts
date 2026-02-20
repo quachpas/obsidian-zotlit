@@ -61,7 +61,7 @@ export default class ZoteroPlugin extends Plugin<typeof settings> {
               ids.forEach((id) => {
                 const item = this.app.Items.get(id);
                 if (!item.isRegularItem()) return;
-                this.request.nItemUpdated(item.id, item.libraryID, type);
+                this.request.nItemUpdated(item.id, item.libraryID, item.key, type);
               });
             }),
           );
@@ -80,7 +80,7 @@ export default class ZoteroPlugin extends Plugin<typeof settings> {
             );
             return;
           }
-          this.request.nReaderAnnotSelect(annotItem.id, selected);
+          this.request.nReaderAnnotSelect(annotItem.id, { selected, key });
         });
       },
       true,
@@ -174,7 +174,7 @@ export default class ZoteroPlugin extends Plugin<typeof settings> {
             id: a.key,
             comment: toMergedAnnotation(
               a.annotationComment,
-              annots[0].id,
+              annots[0].key,
               i === 0,
             ),
           })),
@@ -230,10 +230,10 @@ export default class ZoteroPlugin extends Plugin<typeof settings> {
       });
       this.app.log(`notify item added: ${JSON.stringify(ids)}`);
     }),
-    nReaderAnnotSelect: Debouncer.create<boolean, number>(async (updates) => {
+    nReaderAnnotSelect: Debouncer.create<{ selected: boolean; key: string }, number>(async (updates) => {
       await this.#notify<INotifyReaderAnnotSelect>({
         event: "reader/annot-select",
-        updates,
+        updates: updates.map(([id, { selected, key }]) => [id, selected, key]),
       });
       this.app.log(
         `notify annot select: ${updates.map((a) => a[0]).join(", ")}`,
@@ -243,16 +243,20 @@ export default class ZoteroPlugin extends Plugin<typeof settings> {
       const active = [...this.readerFocus.values()].filter((a) => a !== -1);
       const attachmentId = active[active.length - 1] ?? -1;
       if (attachmentId === this.lastActiveReader) return;
-      const itemId = this.app.Items.get(attachmentId).parentItemID;
+      const attachmentItem = this.app.Items.get(attachmentId);
+      const itemId = attachmentItem.parentItemID;
       if (typeof itemId !== "number") {
         // prevent notify when reader is not attached to an regular item's attachment
         this.lastActiveReader = attachmentId;
         return;
       }
+      const docItem = this.app.Items.get(itemId);
       await this.#notify<INotifyActiveReader>({
         event: "reader/active",
         itemId,
+        itemKey: docItem.key,
         attachmentId,
+        attachmentKey: attachmentItem.key,
       });
       this.lastActiveReader = attachmentId;
       this.app.log(`notify active reader: ${itemId}, ${attachmentId}`);

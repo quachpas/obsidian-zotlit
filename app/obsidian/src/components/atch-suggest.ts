@@ -62,7 +62,7 @@ export function cacheAttachmentSelect(
   selected: AttachmentInfo,
   item: RegularItemInfoBase,
 ) {
-  cacheActiveAtch(window.localStorage, item, selected.itemID);
+  cacheActiveAtch(window.localStorage, item, selected.key);
 }
 
 export async function chooseAnnotAtch(attachments: AttachmentInfo[], app: App) {

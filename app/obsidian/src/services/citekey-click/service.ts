@@ -84,14 +84,14 @@ export class CitekeyClick extends Service {
             if (token.type === "internal-link" && token.citekey === "zotero") {
               (async () => {
                 const citekey = token.text;
-                const { [citekey]: itemID } =
-                  await dbWorker.api.getItemIDsFromCitekey([token.text]);
-                if (itemID < 0) {
+                const { [citekey]: itemKey } =
+                  dbWorker.api.getItemKeyFromCitekey([citekey], settings.libId ?? 1);
+                if (!itemKey) {
                   new Notice(`Citekey ${citekey} not found in Zotero`);
                   return;
                 }
                 const [item] = await dbWorker.api.getItems([
-                  [itemID, settings.libId ?? 1],
+                  [itemKey, settings.libId ?? 1],
                 ]);
                 if (!item) {
                   new Notice(`Item not found for citekey ${citekey}`);

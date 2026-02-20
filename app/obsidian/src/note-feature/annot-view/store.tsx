@@ -10,16 +10,16 @@ import { mergeAnnots, mergeTags, mergedToAnnots } from "@/utils/merge";
 import type ZoteroPlugin from "@/zt-main";
 
 const getActiveAttachment = (
-  cachedID: number | null,
+  cachedKey: string | null,
   attachments: AttachmentInfo[],
 ) => {
   if (attachments.length === 0) {
     return null;
   }
-  if (!cachedID) {
+  if (!cachedKey) {
     return attachments[0];
   }
-  return attachments.find((a) => a.itemID === cachedID) ?? attachments[0];
+  return attachments.find((a) => a.key === cachedKey) ?? attachments[0];
 };
 
 type PickNonFunctionKeys<T extends Record<string, any>> = {
@@ -36,7 +36,7 @@ export type AnnotViewStoreValues = PickNonFunction<AnnotViewStore>;
 const getInitData = (): Partial<AnnotViewStoreValues> => ({
   doc: null,
   allAttachments: null,
-  attachmentID: null,
+  attachmentKey: null,
   annotations: null,
   attachment: null,
   tags: {},
@@ -46,7 +46,7 @@ const getInit = (): AnnotViewStoreValues => ({
   follow: "zt-reader",
   doc: null,
   allAttachments: null,
-  attachmentID: null,
+  attachmentKey: null,
   annotations: null,
   attachment: null,
   tags: {},
@@ -61,25 +61,25 @@ export const createStore = (p: ZoteroPlugin) =>
     /**
      * @param docItem if provided, load active attachment from localStorage
      */
-    const loadAtchs = async (itemID: number, lib: number) => {
-        const attachments = (await api(p).getAttachments(itemID, lib)).filter(
+    const loadAtchs = async (itemKey: string, lib: number) => {
+        const attachments = (await api(p).getAttachments(itemKey, lib)).filter(
           isAnnotatableAttachment,
         );
         set((state) => ({
           ...state,
           allAttachments: attachments,
-          attachment: getActiveAttachment(state.attachmentID, attachments),
+          attachment: getActiveAttachment(state.attachmentKey, attachments),
         }));
       },
-      loadDocTags = async (itemID: number, lib: number) => {
-        const docTags = await api(p).getTags([[itemID, lib]]);
+      loadDocTags = async (itemKey: string, lib: number) => {
+        const docTags = await api(p).getTags([[itemKey, lib]]);
         set((state) => ({ ...state, tags: docTags }));
         return docTags;
       },
       loadAnnots = async (lib: number) => {
         const { attachment } = get();
         if (!attachment) return;
-        const annotations = await api(p).getAnnotations(attachment.itemID, lib);
+        const annotations = await api(p).getAnnotations(attachment.key, lib);
         const mergedAnnots = mergeAnnots(annotations);
         set((state) => ({
           ...state,
@@ -87,7 +87,7 @@ export const createStore = (p: ZoteroPlugin) =>
           attachment,
         }));
         const annotTags = await api(p).getTags(
-          annotations.map((a) => [a.itemID, lib]),
+          annotations.map((a) => [a.key, lib]),
         );
         const mergedAnnotTags = mergeTags(mergedAnnots, annotTags);
         set((state) => ({
@@ -97,44 +97,44 @@ export const createStore = (p: ZoteroPlugin) =>
       };
     return {
       ...getInit(),
-      loadDocItem: async (itemId, atchId, lib, force = false) => {
-        if (itemId < 0) return set(getInitData());
-        if (get().doc?.docItem.itemID === itemId && !force) return;
-        const item = (await api(p).getItems([[itemId, lib]]))[0];
+      loadDocItem: async (itemKey, atchKey, lib, force = false) => {
+        if (!itemKey) return set(getInitData());
+        if (get().doc?.docItem.key === itemKey && !force) return;
+        const item = (await api(p).getItems([[itemKey, lib]]))[0];
         if (!item) return set(getInitData());
         const doc = { docItem: item, lib };
-        if (atchId < 0) {
-          const attachmentID = getCachedActiveAtch(window.localStorage, item);
-          set({ ...getInitData(), doc, attachmentID });
+        if (!atchKey) {
+          const attachmentKey = getCachedActiveAtch(window.localStorage, item);
+          set({ ...getInitData(), doc, attachmentKey });
         } else {
-          cacheActiveAtch(window.localStorage, item, atchId);
-          set({ ...getInitData(), doc, attachmentID: atchId });
+          cacheActiveAtch(window.localStorage, item, atchKey);
+          set({ ...getInitData(), doc, attachmentKey: atchKey });
         }
-        await loadAtchs(item.itemID, lib);
-        await loadDocTags(item.itemID, lib);
+        await loadAtchs(item.key, lib);
+        await loadDocTags(item.key, lib);
         await loadAnnots(lib);
       },
       refresh: async () => {
         const { doc, attachment } = get();
         if (!doc) return;
         const { docItem, lib } = doc;
-        await loadAtchs(docItem.itemID, lib);
-        await loadDocTags(docItem.itemID, lib);
+        await loadAtchs(docItem.key, lib);
+        await loadDocTags(docItem.key, lib);
         if (!attachment) return;
         await loadAnnots(lib);
       },
-      setActiveAtch: (id) => {
+      setActiveAtch: (key) => {
         const { doc, allAttachments } = get();
         if (!doc) return;
-        cacheActiveAtch(window.localStorage, doc.docItem, id);
+        cacheActiveAtch(window.localStorage, doc.docItem, key);
         if (!allAttachments) {
-          set((state) => ({ ...state, attachment: null, attachmentID: id }));
+          set((state) => ({ ...state, attachment: null, attachmentKey: key }));
         } else {
-          const activeAtch = getActiveAttachment(id, allAttachments);
+          const activeAtch = getActiveAttachment(key, allAttachments);
           set((state) => ({
             ...state,
             attachment: activeAtch,
-            attachmentID: id,
+            attachmentKey: key,
           }));
         }
       },

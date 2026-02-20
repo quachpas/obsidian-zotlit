@@ -26,7 +26,7 @@ export async function insertCitation(
   const libId = plugin.settings.libId;
 
   const allAttachments = await plugin.databaseAPI.getAttachments(
-    item.itemID,
+    item.key,
     libId,
   );
 
@@ -34,7 +34,7 @@ export async function insertCitation(
     getAtchIDsOf(file, plugin.app.metadataCache),
   );
   const allSelectedAtchs = allAttachments.filter((a) =>
-    allSelectedAtchIDs.has(a.itemID),
+    allSelectedAtchIDs.has(a.key),
   );
   // if there is no selected attachment in the note, prompt the user to choose one
   let fallbackAtch: AttachmentInfo | undefined | null;
@@ -47,7 +47,7 @@ export async function insertCitation(
   }
 
   const notes = await plugin.databaseAPI
-    .getNotes(item.itemID, libId)
+    .getNotes(item.key, libId)
     .then((notes) => plugin.noteParser.normalizeNotes(notes));
   const extraByAtch = await getHelperExtraByAtch(
     item,

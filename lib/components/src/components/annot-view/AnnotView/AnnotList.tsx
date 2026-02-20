@@ -4,7 +4,7 @@ import Annotation from "../Annotation";
 
 export interface AnnotListProps {
   annotations: AnnotationInfo[];
-  getTags(itemId: number): TagInfo[];
+  getTags(itemKey: string): TagInfo[];
   selectable?: boolean;
   collapsed: boolean;
 }
@@ -14,7 +14,7 @@ export default function AnnotList({
   annotations,
   getTags,
 }: AnnotListProps) {
-  const [selected, { add, remove }] = useSet<number>();
+  const [selected, { add, remove }] = useSet<string>();
   return (
     <div
       role="list"
@@ -25,18 +25,18 @@ export default function AnnotList({
           checkbox={
             selectable && (
               <Checkbox
-                checked={selected.has(annot.itemID)}
+                checked={selected.has(annot.key)}
                 onChange={(checked) =>
-                  checked ? add(annot.itemID) : remove(annot.itemID)
+                  checked ? add(annot.key) : remove(annot.key)
                 }
               />
             )
           }
           collapsed={collapsed}
-          key={annot.itemID}
+          key={annot.key}
           role="listitem"
           annotation={annot}
-          tags={getTags(annot.itemID)}
+          tags={getTags(annot.key)}
         />
       ))}
     </div>

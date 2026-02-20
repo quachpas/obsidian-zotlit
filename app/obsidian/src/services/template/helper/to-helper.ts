@@ -56,7 +56,7 @@ export function toHelper(
 
   const annotHelper = annotation
     ? annotations[
-        extra.annotations.findIndex((a) => a.itemID === annotation.itemID)
+        extra.annotations.findIndex((a) => a.key === annotation.key)
       ]
     : undefined;
 

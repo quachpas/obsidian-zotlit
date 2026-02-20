@@ -57,7 +57,7 @@ function Main({ store, plugin }: { store: StoreApi; plugin: ZoteroPlugin }) {
       case "annotation": {
         const helper = toHelper(preview, ctx);
         const annot = preview.annot
-          ? helper.annotations.find((a) => a.itemID === preview.annot?.itemID)
+          ? helper.annotations.find((a) => a.key === preview.annot?.key)
           : helper.annotations[0];
         if (!annot) return null;
         // @ts-expect-error no recursive in preview

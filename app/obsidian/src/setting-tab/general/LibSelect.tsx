@@ -11,7 +11,7 @@ export default function CitationLibrarySelect() {
     (v, prev) => ({ ...prev, citationLibrary: v }),
   );
 
-  const [data, refresh] = useRefreshAsync(() => database.api.getLibs(), []);
+  const [data, refresh] = useRefreshAsync(() => Promise.resolve(database.api.getLibs()), []);
 
   const libs = data.result ?? [
     { groupID: null, libraryID: 1, name: "My Library" },

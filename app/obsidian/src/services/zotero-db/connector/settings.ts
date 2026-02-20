@@ -2,11 +2,16 @@ import { homedir } from "os";
 import { join } from "path";
 
 export interface SettingsDatabase {
-  zoteroDataDir: string;
+  zoteroApiPort: number;
+  zoteroApiKey: string;
   citationLibrary: number;
+  /** Path to Zotero data directory, used for annotation image cache */
+  zoteroCacheDir: string;
 }
 
 export const getDefaultSettingsDatabase = (): SettingsDatabase => ({
-  zoteroDataDir: join(homedir(), "Zotero"),
+  zoteroApiPort: 23119,
+  zoteroApiKey: "",
   citationLibrary: 1,
+  zoteroCacheDir: join(homedir(), "Zotero"),
 });

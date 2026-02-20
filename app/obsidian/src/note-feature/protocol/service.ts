@@ -72,10 +72,10 @@ export class ProtocolHandler extends Service {
     } else if (query.items.length > 1) {
       new Notice("Multiple items not yet supported");
     }
-    const { libraryID, id } = query.items[0];
-    const [docItem] = await this.dbWorker.api.getItems([[id, libraryID]]);
+    const { libraryID, key } = query.items[0];
+    const [docItem] = await this.dbWorker.api.getItems([[key, libraryID]]);
     if (!docItem) {
-      new Notice("Item not found: " + id);
+      new Notice("Item not found: " + key);
       return;
     }
     const notePath = await this.noteFeatures.createNoteForDocItemFull(
