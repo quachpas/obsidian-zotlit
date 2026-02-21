@@ -16,7 +16,7 @@ const base: RegularItemInfoBase = { ... };
 return Object.assign(base, extra) as unknown as RegularItemInfo;
 ```
 
-### `AttachmentInfo` (from `sql/attachments.ts`)
+### `AttachmentInfo` (from `src/item.ts`)
 Fields: `itemID`, `key`, `path`, `contentType`, `linkMode`, `charsets`, `annotCount`.
 **No `libraryID`, `groupID`, or `itemType`** — those were not in the SQL query output.
 

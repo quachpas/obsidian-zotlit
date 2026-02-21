@@ -52,7 +52,6 @@ export function TextComfirmSettingBase({
   const [checkIconRef] = useIconRef<HTMLButtonElement>("check");
   return (
     <SettingsComponent name={name} description={children}>
-      {/** @ts-expect-error Pick util in ts5 pick non-existing keys with value unknown */}
       <Textarea className="border" value={value} onChange={onChange} />
       <button aria-label="Apply" ref={checkIconRef} onClick={onSubmit} />
     </SettingsComponent>

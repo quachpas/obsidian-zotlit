@@ -49,7 +49,6 @@ export function FieldValue({
         {editing ? (
           // why min-w-0? https://stackoverflow.com/a/66689926
           <div className="flex min-w-0 flex-1 items-center">
-            {/** @ts-expect-error Pick util in ts5 pick non-existing keys with value unknown */}
             <Textarea
               ref={textareaRef}
               className={clsx(
