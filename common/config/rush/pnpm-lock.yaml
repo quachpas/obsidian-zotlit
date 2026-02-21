@@ -644,6 +644,9 @@ importers:
       '@types/node':
         specifier: '16'
         version: 16.18.19
+      typescript:
+        specifier: ~5.1.6
+        version: 5.1.6
 
   ../../lib/protocol:
     dependencies:

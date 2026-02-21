@@ -30,5 +30,6 @@ export {
   isRegularItemInfo as isGeneralItem,
   isNoteItem,
 } from "./item.js";
-export type { Output as AttachmentInfo } from "./item.js";
+export type { AttachmentInfo } from "./item.js";
+export type { LibraryInfo } from "./item.js";
 export type { TagInfo } from "./item.js";
