@@ -1,7 +1,11 @@
 import { assertNever } from "assert-never";
 import { loadPrism, Component, TFile, Notice } from "obsidian";
+import { chooseAnnotAtch } from "@/components/atch-suggest";
+import { chooseLiterature } from "@/note-feature/citation-suggest/popup";
 import type { TplType } from "@/services/template/eta/preset";
+import type { TemplatePreviewStateData } from "./base";
 import { TemplatePreviewBase, asyncDebounce, toCtx } from "./base";
+import { itemDetailsViewType } from "./details";
 import { getTemplateEditorInGroup, getTemplateFile } from "./open";
 
 export const templatePreviewViewType = "zotero-template-preview";
@@ -87,6 +91,36 @@ export class TemplatePreview extends TemplatePreviewBase {
         }
       }),
     );
+    this.addAction("search", "Pick Zotero item to preview", async () => {
+      const result = await chooseLiterature(this.plugin);
+      if (!result) return;
+      const item = result.value.item;
+      const libId = item.libraryID;
+      const templateType = this.store.getState().templateType;
+      const attachments = await this.plugin.databaseAPI.getAttachments(
+        item.key,
+        libId,
+      );
+      let atch = null;
+      const needsAttachment =
+        templateType === "annotation" || templateType === "annots";
+      if (needsAttachment && attachments.length > 0) {
+        atch = await chooseAnnotAtch(attachments, this.app);
+      }
+      const data: TemplatePreviewStateData = {
+        docItem: item.key,
+        attachment: atch?.key,
+      };
+      const group = this.leaf.group;
+      if (!group) return;
+      for (const leaf of this.app.workspace.getGroupLeaves(group)) {
+        const vt = leaf.view.getViewType();
+        if (vt === templatePreviewViewType || vt === itemDetailsViewType) {
+          const prev = leaf.view.getState();
+          await leaf.view.setState({ ...prev, preview: data }, {});
+        }
+      }
+    });
   }
 
   content: PreviewContent | null = null;
