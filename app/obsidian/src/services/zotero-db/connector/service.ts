@@ -85,7 +85,7 @@ export default class Database extends Service {
               await this.refresh({ task: "full" });
             }
           },
-          () => this.settings.zoteroApiPort,
+          () => this.settings.zoteroApiKey,
         ),
       ),
     );
@@ -132,7 +132,7 @@ export default class Database extends Service {
     }
     const reachable = await this.apiService.connect();
     if (!reachable) {
-      throw new Error("Zotero local API not reachable at port " + this.settings.zoteroApiPort);
+      throw new Error("Zotero local API not reachable at http://localhost:23119/api");
     }
     await this.#initIndex(true);
     this.app.vault.trigger("zotero:db-ready");

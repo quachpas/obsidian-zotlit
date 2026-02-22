@@ -40,10 +40,6 @@ export class SettingsService extends _SettingsService<Settings> {
     return this.current?.template?.templates;
   }
 
-  @calc get zoteroApiPort(): number {
-    return this.current?.zoteroApiPort ?? 23119;
-  }
-
   @calc get zoteroApiKey(): string {
     return this.current?.zoteroApiKey ?? "";
   }

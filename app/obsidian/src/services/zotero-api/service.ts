@@ -122,17 +122,12 @@ export class ZoteroApiService extends Service {
     this.#indexedLibrary = null;
   }
 
-  @calc get zoteroApiPort(): number {
-    return this.settings.zoteroApiPort;
-  }
-
   @calc get zoteroApiKey(): string {
     return this.settings.zoteroApiKey;
   }
 
   #rebuildClient() {
     this.#client = new ZoteroLocalApiClient({
-      port: this.zoteroApiPort,
       apiKey: this.zoteroApiKey || undefined,
       fetchFn: obsidianFetch,
     });
