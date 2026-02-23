@@ -48,7 +48,10 @@ export function useSetting<T>(
   set: (val: T, settings: Settings) => Settings,
 ) {
   const service = useContext(SettingTabCtx).settings;
-  const value = useComputed(() => get(service.current!)).value;
+  const value = useComputed(() => {
+    const current = service.current;
+    return current != null ? get(current) : (undefined as unknown as T);
+  }).value;
   const onChange = useMemoizedFn(function onChange(val: T) {
     service.update((prev) => set(val, prev));
   });

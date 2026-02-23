@@ -8,11 +8,11 @@ The tsconfig uses `moduleResolution: "Bundler"`. Workspace packages are resolved
 
 ## Key Services
 
-| Service | File | Role |
-|---|---|---|
-| `ZoteroApiService` | `src/services/zotero-api/service.ts` | HTTP client, item cache, FlexSearch index |
-| `DatabaseWorker` (exported as) | `src/services/zotero-db/connector/service.ts` | Orchestrates init/refresh, handles notifications |
-| `ZoteroDatabase` | `src/services/zotero-db/database.ts` | High-level search/getItems API used by feature code |
+| Service                        | File                                          | Role                                                |
+| ------------------------------ | --------------------------------------------- | --------------------------------------------------- |
+| `ZoteroApiService`             | `src/services/zotero-api/service.ts`          | HTTP client, item cache, FlexSearch index           |
+| `DatabaseWorker` (exported as) | `src/services/zotero-db/connector/service.ts` | Orchestrates init/refresh, handles notifications    |
+| `ZoteroDatabase`               | `src/services/zotero-db/database.ts`          | High-level search/getItems API used by feature code |
 
 `plugin.databaseAPI` → `DatabaseWorker.api` → `ZoteroApiService` instance.
 
@@ -37,8 +37,8 @@ Only has: `itemID`, `key`, `path`, `contentType`, `linkMode`, `charsets`, `annot
 
 ## Settings
 
-| Setting | Type | Notes |
-|---|---|---|
+| Setting          | Type     | Notes                                                      |
+| ---------------- | -------- | ---------------------------------------------------------- |
 | `zoteroCacheDir` | `string` | Default `~/Zotero` — used for annotation image cache paths |
 
 The Zotero API port is hardcoded to `23119` (not configurable).
@@ -90,3 +90,11 @@ data.add.map(([, lib, key]) => [key, lib] as [string, number])
 ## Pre-existing Mock Type Errors
 
 `lib/components/src/mock/note-fields.tsx` has pre-existing TypeScript errors unrelated to the HTTP API refactoring. Do not worry about these.
+
+## `useSetting` and Null `current`
+
+`useSetting` in `src/setting-tab/components/Setting.tsx` reads `service.current`. Before settings finish loading, `current` is `null`/`undefined`. Using `service.current!` (non-null assertion) only suppresses TypeScript — at runtime it still crashes when the settings tab opens before `SettingsService.load()` completes. Always guard: `const current = service.current; return current != null ? get(current) : undefined`.
+
+## `ZoteroApiService` Does Not Use `SettingsService`
+
+After removing `zoteroApiKey`, `ZoteroApiService` no longer needs `SettingsService`. If you add back a settings-derived field, re-add `settings = this.use(SettingsService)` and the import. Do not keep unused `use()` calls — the service container tracks them.
