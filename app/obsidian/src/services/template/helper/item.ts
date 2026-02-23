@@ -108,11 +108,11 @@ export const withDocItemHelper = (
         );
       },
       ownKeys(target) {
-        return [
+        return [...new Set([
           ...Reflect.ownKeys(data),
           ...extraKeys,
           ...Reflect.ownKeys(target),
-        ];
+        ])];
       },
       getOwnPropertyDescriptor(target, prop) {
         if (Object.prototype.hasOwnProperty.call(data, prop)) {

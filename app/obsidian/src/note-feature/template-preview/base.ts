@@ -78,13 +78,15 @@ export function create() {
         libId,
       );
 
-      const attachment =
+      let attachment =
         allAttachments.find((i) => i.key === stateData.attachment) ?? null;
 
       if (stateData.attachment && !attachment) {
-        console.error(
-          "TemplatePreview: no attachment found for key " + stateData.attachment,
+        console.warn(
+          "TemplatePreview: no attachment found for key " + stateData.attachment +
+          ", falling back to first attachment",
         );
+        attachment = allAttachments[0] ?? null;
       }
 
       const annotations: AnnotationInfo[] = attachment

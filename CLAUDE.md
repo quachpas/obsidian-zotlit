@@ -30,8 +30,11 @@ cd app/obsidian && npx tsc --noEmit
 # Build a library package (outputs to dist/)
 cd lib/<pkg> && npx tsc
 
-# Full plugin build
-cd app/obsidian && npm run build
+# Build obsidian plugin (with dependencies)
+rush build -i zotlit
+
+# Full workspace rebuild (verification)
+rush rebuild --verbose
 ```
 
 > **Important:** `lib/` packages must be rebuilt (`npx tsc`) after source changes before the obsidian app picks up the new types, because the TypeScript compiler resolves types from each package's `dist/` directory.
