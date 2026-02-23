@@ -7,12 +7,12 @@ type EtaTrimConfigOption = "false" | "nl" | "slurp";
 
 export default function AutoTrimSetting() {
   const [defaultLeading, applyLeading] = useSetting(
-    (s) => s.autoTrim[0],
-    (s, prev) => ({ ...prev, autoTrim: [s, prev.autoTrim[1]] }),
+    (s) => s.autoTrim?.[0] ?? false,
+    (s, prev) => ({ ...prev, autoTrim: [s, prev.autoTrim?.[1] ?? false] }),
   );
   const [defaultEnding, applyEnding] = useSetting(
-    (s) => s.autoTrim[1],
-    (s, prev) => ({ ...prev, autoTrim: [prev.autoTrim[0], s] }),
+    (s) => s.autoTrim?.[1] ?? false,
+    (s, prev) => ({ ...prev, autoTrim: [prev.autoTrim?.[0] ?? false, s] }),
   );
 
   const [leading, setLeading] = useState<trimConfig>(defaultLeading);

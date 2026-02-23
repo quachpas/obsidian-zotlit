@@ -14,7 +14,7 @@ export default function Template() {
     <>
       <TextComfirmSetting
         name="Template location"
-        get={(s) => s.template.folder}
+        get={(s) => s.template?.folder ?? ""}
         set={(v, prev) => ({
           ...prev,
           template: { ...prev.template, folder: v },

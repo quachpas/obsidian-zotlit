@@ -95,6 +95,33 @@ data.add.map(([, lib, key]) => [key, lib] as [string, number])
 
 `useSetting` in `src/setting-tab/components/Setting.tsx` reads `service.current`. Before settings finish loading, `current` is `null`/`undefined`. Using `service.current!` (non-null assertion) only suppresses TypeScript — at runtime it still crashes when the settings tab opens before `SettingsService.load()` completes. Always guard: `const current = service.current; return current != null ? get(current) : undefined`.
 
+## `useSetting` Nested Property Access — Always Use Optional Chaining
+
+Even when `service.current` is non-null, plugged-in settings loaded from disk may be missing nested keys if the user's data predates a version that added them. **Any getter that accesses a nested object or array must use optional chaining and a fallback:**
+
+```ts
+// BAD — crashes if template key was absent in older persisted settings
+(s) => s.template.folder
+(s) => s.template.templates[type]
+(s) => s.autoTrim[0]
+
+// GOOD
+(s) => s.template?.folder ?? ""
+(s) => s.template?.templates?.[type] ?? ""
+(s) => s.autoTrim?.[0] ?? false
+```
+
+This also applies to setters that read nested keys from `prev`:
+```ts
+// BAD
+(v, prev) => ({ ...prev, template: { ...prev.template, templates: { ...prev.template.templates, [type]: v } } })
+
+// GOOD
+(v, prev) => ({ ...prev, template: { ...prev.template, templates: { ...prev.template?.templates, [type]: v } } })
+```
+
+Flat top-level properties (`s.logLevel`, `s.enableServer`, etc.) are safe — they return `undefined` on missing keys without throwing.
+
 ## `ZoteroApiService` Does Not Use `SettingsService`
 
 After removing `zoteroApiKey`, `ZoteroApiService` no longer needs `SettingsService`. If you add back a settings-derived field, re-add `settings = this.use(SettingsService)` and the import. Do not keep unused `use()` calls — the service container tracks them.

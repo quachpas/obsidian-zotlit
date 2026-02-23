@@ -6,12 +6,12 @@ import { templateDesc } from "./shared";
 
 export function SimpleTemplateEdit({ type }: { type: TplType.Embeded }) {
   const [defaultValue, applyTemplate] = useSetting(
-    (s) => s.template.templates[type],
+    (s) => s.template?.templates?.[type] ?? "",
     (v, prev) => ({
       ...prev,
       template: {
         ...prev.template,
-        templates: { ...prev.template.templates, [type]: v },
+        templates: { ...prev.template?.templates, [type]: v },
       },
     }),
   );
