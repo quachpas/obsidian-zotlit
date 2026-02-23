@@ -293,7 +293,7 @@ export class ZoteroApiService extends Service {
   }
 
   async getAnnotations(attachmentKey: string, libraryID: number): Promise<AnnotationInfo[]> {
-    const children = await this.#client.getChildren(attachmentKey);
+    const children = await this.#client.getChildren(attachmentKey, "annotation");
     return children
       .filter((c) => isAnnotationData(c.data as any))
       .map((c) => {
@@ -322,14 +322,14 @@ export class ZoteroApiService extends Service {
   }
 
   async getAttachments(docKey: string, libraryID: number): Promise<AttachmentInfo[]> {
-    const children = await this.#client.getChildren(docKey);
+    const children = await this.#client.getChildren(docKey, "attachment");
     return children
       .filter((c) => isAttachmentData(c.data as any))
       .map((c) => apiAttachmentToAttachmentInfo(c as any));
   }
 
   async getNotes(itemKey: string, libraryID: number): Promise<NoteInfo[]> {
-    const children = await this.#client.getChildren(itemKey);
+    const children = await this.#client.getChildren(itemKey, "note");
     return children
       .filter((c) => isNoteData(c.data as any))
       .map((c) => apiNoteToNoteInfo(c as any));

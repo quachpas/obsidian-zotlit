@@ -150,9 +150,11 @@ export class ZoteroLocalApiClient {
   }
 
   /** Fetch child items (annotations, notes, attachments) of an item */
-  async getChildren(itemKey: string): Promise<ZoteroApiChildItem[]> {
+  async getChildren(itemKey: string, itemType?: string): Promise<ZoteroApiChildItem[]> {
+    let url = `${this.baseUrl}/items/${itemKey}/children?format=json&include=data`;
+    if (itemType) url += `&itemType=${itemType}`;
     const res = await this.#fetch(
-      `${this.baseUrl}/items/${itemKey}/children?format=json&include=data`,
+      url,
       { headers: this.headers() },
     );
     if (!res.ok) throw new Error(`Zotero API error ${res.status}: ${await res.text()}`);
