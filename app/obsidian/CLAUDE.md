@@ -39,7 +39,6 @@ Only has: `itemID`, `key`, `path`, `contentType`, `linkMode`, `charsets`, `annot
 
 | Setting | Type | Notes |
 |---|---|---|
-| `zoteroApiKey` | `string` | Optional local API key |
 | `zoteroCacheDir` | `string` | Default `~/Zotero` — used for annotation image cache paths |
 
 The Zotero API port is hardcoded to `23119` (not configurable).

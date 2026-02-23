@@ -31,10 +31,9 @@ import type {
 import Document from "flexsearch/src/document";
 import language from "flexsearch/src/lang/en.js";
 import charset from "flexsearch/src/lang/latin/default.js";
-import { Service, calc } from "@ophidian/core";
+import { Service } from "@ophidian/core";
 import { App, Notice, requestUrl } from "obsidian";
 import log from "@/log";
-import { SettingsService } from "@/settings/base";
 import type { FetchFn } from "@obzt/zotero-api";
 
 /**
@@ -77,7 +76,6 @@ const INDEX_FIELDS = [
 ];
 
 export class ZoteroApiService extends Service {
-  settings = this.use(SettingsService);
   app = this.use(App);
 
   #client: ZoteroLocalApiClient = new ZoteroLocalApiClient({ fetchFn: obsidianFetch });
@@ -122,13 +120,8 @@ export class ZoteroApiService extends Service {
     this.#indexedLibrary = null;
   }
 
-  @calc get zoteroApiKey(): string {
-    return this.settings.zoteroApiKey;
-  }
-
   #rebuildClient() {
     this.#client = new ZoteroLocalApiClient({
-      apiKey: this.zoteroApiKey || undefined,
       fetchFn: obsidianFetch,
     });
   }

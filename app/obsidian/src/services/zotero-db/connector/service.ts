@@ -79,21 +79,6 @@ export default class Database extends Service {
       effect(
         skip(
           async () => {
-            if (this.#status === DatabaseStatus.NotInitialized) {
-              await this.initialize();
-            } else {
-              await this.refresh({ task: "full" });
-            }
-          },
-          () => this.settings.zoteroApiKey,
-        ),
-      ),
-    );
-
-    this.register(
-      effect(
-        skip(
-          async () => {
             await this.refresh({ task: "searchIndex", force: true });
             new Notice("Zotero search index updated.");
           },

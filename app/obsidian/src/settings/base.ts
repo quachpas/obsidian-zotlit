@@ -40,10 +40,6 @@ export class SettingsService extends _SettingsService<Settings> {
     return this.current?.template?.templates;
   }
 
-  @calc get zoteroApiKey(): string {
-    return this.current?.zoteroApiKey ?? "";
-  }
-
   @calc get zoteroCacheDirPath(): string {
     return this.current?.zoteroCacheDir ?? "";
   }
