@@ -93,11 +93,18 @@ export type ItemCreator = {
   creatorType: string | null;
 } & Creator;
 
+export type ParsedDate = {
+  year?: number;
+  month?: number;
+  day?: number;
+};
+
 export type RegularItemInfoBase = Item & {
   creators: Omit<ItemCreator, "itemID">[];
   citekey: string | null;
   collections: Collection[];
   dateAccessed: Date | null;
+  parsedDate: ParsedDate | null;
 };
 export type RegularItemInfo = RegularItemInfoBase & Record<string, unknown[]>;
 

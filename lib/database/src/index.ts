@@ -13,6 +13,7 @@ export { getBacklink } from "./utils/zotero-backlink.js";
 export type {
   RegularItemInfo,
   RegularItemInfoBase,
+  ParsedDate,
   AnnotationInfo,
   Creator,
   CreatorFullName,

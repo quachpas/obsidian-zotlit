@@ -5,6 +5,7 @@ import type {
   Creator,
   LibraryInfo,
   NoteInfo,
+  ParsedDate,
   RegularItemInfo,
   RegularItemInfoBase,
 } from "@obzt/database";
@@ -36,12 +37,27 @@ function creatorFromApi(c: ZoteroApiCreator): Creator {
   };
 }
 
+/**
+ * Parse Zotero's `meta.parsedDate` ISO partial string into components.
+ * Zotero emits "YYYY", "YYYY-MM", or "YYYY-MM-DD".
+ */
+function parseDateComponents(parsedDate?: string): ParsedDate | null {
+  if (!parsedDate) return null;
+  const parts = parsedDate.split("-").map(Number);
+  const result: ParsedDate = {};
+  if (parts[0] && !isNaN(parts[0])) result.year = parts[0];
+  if (parts[1] && !isNaN(parts[1])) result.month = parts[1];
+  if (parts[2] && !isNaN(parts[2])) result.day = parts[2];
+  if (!result.year && !result.month && !result.day) return null;
+  return result;
+}
+
 /** Convert API item to RegularItemInfo. itemID is set to 0 (not available via HTTP API). */
 export function apiItemToRegularItemInfo(
   apiItem: ZoteroApiRegularItem,
   collectionsMap: Map<string, Collection>,
 ): RegularItemInfo {
-  const { data, library } = apiItem;
+  const { data, library, meta } = apiItem;
   const groupID = library.type === "group" ? library.id : null;
   const libraryID = library.type === "user" ? library.id : library.id;
 
@@ -72,6 +88,7 @@ export function apiItemToRegularItemInfo(
     citekey: data.citationKey ?? null,
     collections,
     dateAccessed,
+    parsedDate: parseDateComponents(meta.parsedDate),
   };
 
   // Copy remaining data fields as array-wrapped values (to match RegularItemInfo shape)
