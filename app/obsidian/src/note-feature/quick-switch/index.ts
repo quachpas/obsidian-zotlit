@@ -1,1 +1,1 @@
-export { openOrCreateNote } from "./popup";
+export { openOrCreateNote, openInZotero } from "./popup";

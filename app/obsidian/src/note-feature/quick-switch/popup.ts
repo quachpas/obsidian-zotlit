@@ -1,4 +1,5 @@
 import { Keymap } from "obsidian";
+import { getBacklink } from "@obzt/database";
 import { openModal } from "@/components/basic/modal";
 import { ZoteroItemPopupSuggest } from "@/components/item-suggest/popup.js";
 import type ZoteroPlugin from "@/zt-main.js";
@@ -32,5 +33,27 @@ export async function openOrCreateNote(plugin: ZoteroPlugin): Promise<boolean> {
     Keymap.isModEvent(evt),
     { active: true },
   );
+  return true;
+}
+
+const zoteroInstructions = [
+  { command: "↑↓", purpose: "to navigate" },
+  { command: "↵", purpose: "to open in Zotero" },
+  { command: "esc", purpose: "to dismiss" },
+];
+
+class ZoteroOpenSwitch extends ZoteroItemPopupSuggest {
+  constructor(public plugin: ZoteroPlugin) {
+    super(plugin);
+    this.setInstructions(zoteroInstructions);
+  }
+}
+
+export async function openInZotero(plugin: ZoteroPlugin): Promise<boolean> {
+  const result = await openModal(new ZoteroOpenSwitch(plugin));
+  if (!result) return false;
+  const url = getBacklink(result.value.item);
+  if (!url) return false;
+  window.open(url);
   return true;
 }

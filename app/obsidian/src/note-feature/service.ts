@@ -15,7 +15,7 @@ import type { Context } from "@/services/template/helper/base.js";
 import { AnnotationView, annotViewType } from "./annot-view/view";
 import { CitationEditorSuggest, insertCitationTo } from "./citation-suggest/";
 import { importNote } from "./note-import";
-import { openOrCreateNote } from "./quick-switch";
+import { openOrCreateNote, openInZotero } from "./quick-switch";
 import {
   ItemDetailsView,
   itemDetailsViewType,
@@ -54,6 +54,11 @@ class NoteFeatures extends Service {
       id: "note-quick-switcher",
       name: "Open quick switcher for literature notes",
       callback: () => openOrCreateNote(plugin as any), // TODO: Fix plugin type in openOrCreateNote
+    });
+    plugin.addCommand({
+      id: "open-in-zotero",
+      name: "Open in Zotero",
+      callback: () => openInZotero(plugin as any),
     });
     plugin.registerView(
       annotViewType,
