@@ -7,7 +7,9 @@ The SQL query classes (`Prepared`, `Attachements`, etc.) are no longer used by t
 ## Key Types
 
 ### `RegularItemInfoBase`
-Base fields: `itemID`, `libraryID`, `key`, `groupID`, `itemType`, `creators`, `citekey`, `collections`, `dateAccessed`.
+Base fields: `itemID`, `libraryID`, `key`, `groupID`, `itemType`, `creators`, `citekey`, `collections`, `dateAccessed`, `parsedDate`.
+
+`parsedDate: ParsedDate | null` where `ParsedDate = { year?: number; month?: number; day?: number }`.
 
 ### `RegularItemInfo`
 `RegularItemInfoBase & Record<string, unknown[]>` — the index signature means **you cannot assign object literals directly** to this type. Use:

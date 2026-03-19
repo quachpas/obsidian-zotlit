@@ -54,6 +54,7 @@ export default class Database extends Service {
 
       this.registerEvent(
         this.server.on("bg:notify", async (_, data) => {
+          console.log("[ZotLit] bg:notify received", JSON.stringify(data));
           if (data.event !== "regular-item/update") return;
           await this.#handleItemUpdate(data);
         }),
@@ -128,12 +129,18 @@ export default class Database extends Service {
   /** Handle real-time item update notifications from Zotero */
   #handleItemUpdate = debounce(
     async (data: INotifyRegularItem) => {
+      console.log("[ZotLit] handleItemUpdate", JSON.stringify(data));
       log.debug("Handling item update notification", data);
       const lib = this.settings.libId ?? 1;
 
+      const trashedKeys = new Set(data.trash.map(([, , key]) => key));
       await Promise.all([
-        ...data.add.map(([, , key]) => this.apiService.updateItem(key, lib)),
-        ...data.modify.map(([, , key]) => this.apiService.updateItem(key, lib)),
+        ...data.add
+          .filter(([, , key]) => !trashedKeys.has(key))
+          .map(([, , key]) => this.apiService.updateItem(key, lib)),
+        ...data.modify
+          .filter(([, , key]) => !trashedKeys.has(key))
+          .map(([, , key]) => this.apiService.updateItem(key, lib)),
         ...data.trash.map(([, , key]) => this.apiService.removeItem(key, lib)),
       ]);
 

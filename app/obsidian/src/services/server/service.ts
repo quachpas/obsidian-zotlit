@@ -28,6 +28,7 @@ export class Server extends Service implements Events {
   }
 
   server: HTTPServer | null = null;
+  lastError: Error | null = null;
 
   @calc
   get port() {
@@ -43,6 +44,9 @@ export class Server extends Service implements Events {
     return this.settings.current?.enableServer;
   }
   onload() {
+    if (this.enableServer) {
+      this.initServer();
+    }
     this.register(
       effect(
         skip(
@@ -94,6 +98,12 @@ export class Server extends Service implements Events {
   }
   #startListen() {
     if (this.server?.listening) return;
+    this.lastError = null;
+    this.server?.once("error", (err: Error) => {
+      this.lastError = err;
+      log.error(`Server failed to listen on ${this.hostname}:${this.port}`, err.message);
+      console.error("[ZotLit] Background server error:", err);
+    });
     this.server?.listen(this.port, this.hostname, () =>
       this.listeningListener(),
     );
@@ -113,6 +123,7 @@ export class Server extends Service implements Events {
   }
 
   requestListener(request: IncomingMessage, response: ServerResponse) {
+    console.log("[ZotLit] server request received", request.method, request.url, "content-type:", request.headers["content-type"]);
     if (!request.url) {
       log.error("Request without url");
       response.statusCode = 400;
@@ -131,9 +142,11 @@ export class Server extends Service implements Events {
     const action = pathname.substring(1),
       // use bg: prefix to avoid conflict with obsidian protocol actions
       event = `bg:${pathname.substring(1)}`;
+    console.log("[ZotLit] action:", action, "in bgActions:", bgActions.has(action));
     if (bgActions.has(action)) {
       const params = Object.fromEntries(searchParams.entries());
-      if (request.headers["content-type"] === "application/json") {
+      const contentType = request.headers["content-type"] ?? "";
+      if (contentType.includes("application/json")) {
         new Promise<unknown>((resolve, reject) => {
           let data = "";
           request.on("data", (chunk) => (data += chunk));
@@ -146,7 +159,12 @@ export class Server extends Service implements Events {
             }
           });
         }).then((data) => {
+          console.log("[ZotLit] triggering event", event, JSON.stringify(data));
           this.trigger(event, params, data);
+          response.end();
+        }).catch((error) => {
+          console.error("[ZotLit] server request error", error);
+          response.statusCode = 500;
           response.end();
         });
       } else {

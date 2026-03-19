@@ -24,6 +24,7 @@ export default class ZoteroSettingTab extends PluginSettingTab {
           settings: this.plugin.settings,
           app: this.app,
           database: this.plugin.dbWorker,
+          server: this.plugin.server,
           closeTab: () => (this as any).setting.close(),
         }}
       >

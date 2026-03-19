@@ -1,9 +1,61 @@
 import getPort from "get-port";
 import { Notice } from "obsidian";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useIconRef } from "@/utils/icon";
+import { SettingTabCtx, useRefreshAsync } from "../common";
 import { BooleanSettingBase, useSwitch } from "../components/Boolean";
 import Setting, { useSetting } from "../components/Setting";
+import { DatabasePath } from "./DatabasePath";
+import type { DatabaseStatus } from "./useDatabaseStatus";
+
+function ServerStatus() {
+  const { server } = useContext(SettingTabCtx);
+  const [enableServer] = useSetting(
+    (s) => s.enableServer,
+    (_, s) => s,
+  );
+  const [hostname] = useSetting(
+    (s) => s.serverHostname ?? "127.0.0.1",
+    (_, s) => s,
+  );
+  const [port] = useSetting(
+    (s) => s.serverPort ?? 9091,
+    (_, s) => s,
+  );
+  const [promise, refresh] = useRefreshAsync(
+    () =>
+      Promise.resolve({
+        listening: server.server?.listening ?? false,
+        error: server.lastError,
+      }),
+    [],
+  );
+  const [refreshIconRef] = useIconRef<HTMLButtonElement>("refresh-cw");
+
+  let state: DatabaseStatus;
+  if (!enableServer || promise.loading) {
+    state = "disabled";
+  } else {
+    state = promise.result?.listening ? "success" : "failed";
+  }
+
+  const errorMsg = state === "failed" ? promise.result?.error?.message : undefined;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1">
+        <DatabasePath
+          path={`http://${hostname}:${port}/notify`}
+          state={state}
+        />
+        <button aria-label="Refresh" ref={refreshIconRef} onClick={refresh} />
+      </div>
+      {errorMsg && (
+        <code className="text-txt-error text-xs">{errorMsg}</code>
+      )}
+    </div>
+  );
+}
 
 export function BackgroundConnectSetting() {
   const [value, setValue] = useSetting(
@@ -16,7 +68,15 @@ export function BackgroundConnectSetting() {
       <Setting
         heading
         name="Background connect"
-        description="Allow Zotero to send status in the background, which is required for some features like focus annotation on selection in Zotero"
+        description={
+          <>
+            <div>
+              Allow Zotero to send status in the background, which is required
+              for some features like focus annotation on selection in Zotero
+            </div>
+            <ServerStatus />
+          </>
+        }
       />
       <BooleanSettingBase ref={ref} name="Enable">
         Remember to enable the server in Zotero as well

@@ -2,6 +2,7 @@ import type { App } from "obsidian";
 import { createContext, useCallback, useState } from "react";
 import type { UseAsyncOptions, UseAsyncReturn } from "react-async-hook";
 import { useAsync } from "react-async-hook";
+import type { Server } from "@/services/server/service";
 import type { DatabaseWorker } from "@/services/zotero-db";
 import type { SettingsService } from "@/settings/base";
 import { InVaultPath } from "@/settings/invault-path";
@@ -10,6 +11,7 @@ export const SettingTabCtx = createContext<{
   settings: SettingsService;
   app: App;
   database: DatabaseWorker;
+  server: Server;
   closeTab: () => void;
 }>({} as any);
 

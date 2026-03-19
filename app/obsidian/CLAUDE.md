@@ -13,6 +13,7 @@ The tsconfig uses `moduleResolution: "Bundler"`. Workspace packages are resolved
 | `ZoteroApiService`             | `src/services/zotero-api/service.ts`          | HTTP client, item cache, FlexSearch index           |
 | `DatabaseWorker` (exported as) | `src/services/zotero-db/connector/service.ts` | Orchestrates init/refresh, handles notifications    |
 | `ZoteroDatabase`               | `src/services/zotero-db/database.ts`          | High-level search/getItems API used by feature code |
+| `Server`                       | `src/services/server/service.ts`              | Local HTTP server (port 9091) receiving push notifications from Zotero extension |
 
 `plugin.databaseAPI` → `DatabaseWorker.api` → `ZoteroApiService` instance.
 
@@ -37,9 +38,12 @@ Only has: `itemID`, `key`, `path`, `contentType`, `linkMode`, `charsets`, `annot
 
 ## Settings
 
-| Setting          | Type     | Notes                                                      |
-| ---------------- | -------- | ---------------------------------------------------------- |
-| `zoteroCacheDir` | `string` | Default `~/Zotero` — used for annotation image cache paths |
+| Setting           | Type      | Notes                                                                              |
+| ----------------- | --------- | ---------------------------------------------------------------------------------- |
+| `zoteroCacheDir`  | `string`  | Default `~/Zotero` — used for annotation image cache paths                         |
+| `enableServer`    | `boolean` | Default `false` — must be `true` to receive push notifications from Zotero extension |
+| `serverPort`      | `number`  | Default `9091` — port the local HTTP server (Channel B) listens on                |
+| `serverHostname`  | `string`  | Default `127.0.0.1` — hostname the local HTTP server binds to                     |
 
 The Zotero API port is hardcoded to `23119` (not configurable).
 
@@ -125,3 +129,39 @@ Flat top-level properties (`s.logLevel`, `s.enableServer`, etc.) are safe — th
 ## `ZoteroApiService` Does Not Use `SettingsService`
 
 After removing `zoteroApiKey`, `ZoteroApiService` no longer needs `SettingsService`. If you add back a settings-derived field, re-add `settings = this.use(SettingsService)` and the import. Do not keep unused `use()` calls — the service container tracks them.
+
+## `skip()` Skips the First Reactive Evaluation
+
+`skip(fn, deps, skipInitial = false)` in `src/settings/base.ts` wraps a reactive effect and skips its first run (when `skipInitial = false`, the default). This means **if a setting is already `true` at plugin load, an effect wrapped with `skip()` will NOT fire on startup** — only on subsequent changes.
+
+**Known instance:** `Server.onload()` registers an `effect(skip(...))` for `enableServer`. Because of this, the server was never started on plugin load when `enableServer` was already saved as `true`. The fix is to add an explicit startup call before registering the reactive effect:
+```ts
+onload() {
+  if (this.enableServer) {
+    this.initServer(); // explicit init — skip() won't fire on load
+  }
+  this.register(effect(skip(...)));
+}
+```
+
+## `Server` — Content-Type Check Must Use `.includes()`
+
+`Server.requestListener` checks `request.headers["content-type"]` to decide whether to parse a JSON body. Use `.includes("application/json")` rather than `=== "application/json"` — some HTTP clients (including Zotero's fetch) may append `; charset=utf-8`, causing a strict equality check to silently skip JSON parsing and fire the event with no data.
+
+## `SettingTabCtx` Includes `server: Server`
+
+`src/setting-tab/common.tsx` — `SettingTabCtx` exposes `{ settings, app, database, server, closeTab }`. The `server` field (type `Server` from `src/services/server/service.ts`) is supplied in `index.tsx` via `server: this.plugin.server`. Use `useContext(SettingTabCtx).server` in setting-tab components that need to inspect server state.
+
+## Trash + Modify Race Condition in `#handleItemUpdate`
+
+When an item is trashed in Zotero, Zotero fires **both** a `modify` and a `trash` event for the same item key. `DatabaseWorker.#handleItemUpdate` processes all three queues (`add`, `modify`, `trash`) in a single `Promise.all`. If `updateItem` (called for `modify`) completes after `removeItem` (called for `trash`), the item is re-added to the cache and FlexSearch index.
+
+**Fix:** filter trashed keys out of the `add`/`modify` sets before processing:
+```ts
+const trashedKeys = new Set(data.trash.map(([, , key]) => key));
+await Promise.all([
+  ...data.add.filter(([, , key]) => !trashedKeys.has(key)).map(...),
+  ...data.modify.filter(([, , key]) => !trashedKeys.has(key)).map(...),
+  ...data.trash.map(([, , key]) => this.apiService.removeItem(key, lib)),
+]);
+```

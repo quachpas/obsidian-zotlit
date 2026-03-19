@@ -20,6 +20,9 @@ rush update --bypass-policy
 | `lib/zotero-type/` | `@obzt/zotero-type` | Zotero database schema type definitions |
 | `lib/common/` | `@obzt/common` | Shared utilities |
 | `lib/ophidian-lib-core/` | `@ophidian/core` | Service container / reactive settings framework |
+| `lib/eta/` | `eta-prf` | Embedded JS template engine (fork of eta, used for note templates) |
+| `lib/workerpool/` | `@aidenlx/workerpool` | Worker pool (used by annot-block service) |
+| `lib/zotero-helper/` | `@aidenlx/zotero-helper` | Zotero plugin dev utilities (used by `app/zotero`) |
 
 ### Build Commands
 
@@ -62,9 +65,41 @@ Items are identified by their **8-character alphanumeric Zotero key** (e.g. `"AB
 - `itemID` is always `0` for HTTP API–sourced items.
 - `KeyLibID = [key: string, libraryID: number]` is the standard pair type (replaces old `IDLibID = [id: number, lib: number]`).
 
-## Real-Time Notifications
+## Communication Channels (Three-Channel Architecture)
 
-The Zotero extension sends `INotifyRegularItem` via the local server:
+The Obsidian plugin and Zotero extension communicate through three distinct channels:
+
+### Channel A — Zotero Local HTTP API (pull, always available)
+- Endpoint: `http://localhost:23119/api/`
+- Requires "Allow other applications to communicate with Zotero" in Zotero's Advanced settings.
+- Used by `ZoteroApiService` for all item/attachment/annotation data fetches.
+- No extension required (built into Zotero).
+
+### Channel B — Background notification server (push, opt-in)
+- Endpoint: Obsidian listens on `http://127.0.0.1:9091` (configurable).
+- **Disabled by default** (`enableServer: false`). Must be enabled in plugin settings.
+- The Zotero extension HTTP POSTs notifications to `/notify`.
+- Features that require Channel B: real-time item cache refresh (`INotifyRegularItem`), active reader tracking (`INotifyActiveReader`), annotation selection sync (`INotifyReaderAnnotSelect`).
+- Debounce: Zotero debounces at 500 ms (batched into add/modify/trash queues); Obsidian re-debounces at 1 s.
+
+### Channel C — Obsidian URI protocol (Zotero → Obsidian, no server required)
+- Zotero extension launches `obsidian://zotero/<action>` URIs directly.
+- Actions: `open` (open note), `export` (create/update note), `update` (refresh note).
+- No `enableServer` setting required; works whenever Obsidian is running.
+
+### Notification Routing
+
+Not all push notifications go through `DatabaseWorker`:
+
+| Notification type | Interface | Consumer |
+|---|---|---|
+| Item add/modify/trash | `INotifyRegularItem` | `DatabaseWorker` (connector/service.ts) → item cache refresh |
+| Active reader change | `INotifyActiveReader` | `annot-view/view.tsx` directly |
+| Annotation selection | `INotifyReaderAnnotSelect` | `annot-view/view.tsx` directly |
+
+`INotifyActiveReader` provides both `itemKey: string` and `attachmentKey: string` (string fields preferred over the legacy `itemId`/`attachmentId`).
+
+### `INotifyRegularItem` shape
 ```ts
 interface INotifyRegularItem {
   event: "regular-item/update";
@@ -74,8 +109,6 @@ interface INotifyRegularItem {
 }
 ```
 The third element `key` is used for all API calls; `id` is kept for legacy/compatibility only.
-
-`INotifyActiveReader` provides both `itemKey: string` and `attachmentKey: string` (string fields preferred over the legacy `itemId`/`attachmentId`).
 
 ## Merge Annotations Feature
 
